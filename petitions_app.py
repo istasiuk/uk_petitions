@@ -133,7 +133,9 @@ gb.configure_default_column(sortable=True, filter=True, resizable=True)
 link_cell_renderer = """
 function(params) {
     if (params.value) {
-        return params.value;
+        const eDiv = document.createElement('div');
+        eDiv.innerHTML = params.value;
+        return eDiv;
     }
     return '';
 }
