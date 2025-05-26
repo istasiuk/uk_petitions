@@ -32,9 +32,9 @@ def fetch_petitions():
                 "State": attrs.get("state"),
                 "Signatures": attrs.get("signature_count"),
                 "Created at": attrs.get("created_at"),
-                "Rejected_at": attrs.get("rejected_at"),
-                "Opened_at": attrs.get("opened_at"),
-                "Closed_at": attrs.get("closed_at"),
+                "Rejected at": attrs.get("rejected_at"),
+                "Opened at": attrs.get("opened_at"),
+                "Closed at": attrs.get("closed_at"),
                 "Response threshold (10,000) reached at": attrs.get("response_threshold_reached_at"),
                 "Government response at": attrs.get("government_response_at"),
                 "Debate threshold (100,000) reached at": attrs.get("debate_threshold_reached_at"),
@@ -60,39 +60,42 @@ st.title("UK Parliament Petitions Viewer")
 # Add Refresh Data button
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
-    st.rerun()  # refresh the page after clearing cache
+    st.experimental_rerun()  # refresh the page after clearing cache
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
 
 st.success(f"{len(df)} petitions")
 
-# Filters in one row using columns
-col1, col2 = st.columns(2)
-with col1:
-    state_filter = st.selectbox("Select State:", ["All"] + sorted(df['State'].dropna().unique().tolist()))
-with col2:
-    department_filter = st.selectbox("Select Department:", ["All"] + sorted(df['Department'].dropna().unique().tolist()))
+# Number of items per page
+ITEMS_PER_PAGE = 50
 
 filtered_df = df.copy()
 
+# Filters and page selector in one row using columns
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    state_filter = st.selectbox("Select State:", ["All"] + sorted(filtered_df['State'].dropna().unique().tolist()))
+with col2:
+    department_filter = st.selectbox("Select Department:", ["All"] + sorted(filtered_df['Department'].dropna().unique().tolist()))
+
+# Apply filters before determining total pages
 if state_filter != "All":
     filtered_df = filtered_df[filtered_df["State"] == state_filter]
 
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["Department"] == department_filter]
 
-# Number of items per page
-ITEMS_PER_PAGE = 50
-
 total_items = len(filtered_df)
-total_pages = math.ceil(total_items / ITEMS_PER_PAGE)
+total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
-page = st.selectbox(
-    "Select page:",
-    options=list(range(1, total_pages + 1)),
-    index=0  # default to first page
-)
+with col3:
+    page = st.selectbox(
+        "Select page:",
+        options=list(range(1, total_pages + 1)),
+        index=0  # default to first page
+    )
 
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
