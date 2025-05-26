@@ -159,6 +159,14 @@ gb.configure_column(
 
 grid_options = gb.build()
 
+grid_options['columnDefs'] = [
+    {
+        **col,
+        'cellRendererParams': {'suppressHtmlEscaping': True} if col['field'] in ['Petition', 'Debate video'] else {}
+    }
+    for col in grid_options['columnDefs']
+]
+
 AgGrid(
     paged_df,
     gridOptions=grid_options,
