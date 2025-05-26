@@ -77,7 +77,7 @@ def avg_days_between(df, start_col, end_col):
 
     if len(diffs) == 0:
         return None
-    return diffs.mean()
+    return int(diffs.mean())
 
 # Add Title
 st.title("UK Parliament Petitions Viewer")
