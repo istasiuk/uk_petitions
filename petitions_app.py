@@ -160,7 +160,7 @@ for col in date_columns:
     if col in paged_df.columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
-st.write(f"Showing page {page} of {total_pages} (Petitions: {len(filtered_df):,})")
+st.write(f"Showing page {page} of {total_pages} (Petitions: {len(df):,})")
 
 # Sort and reset index as before
 df_display = paged_df.sort_values(by="Signatures", ascending=False).reset_index(drop=True)
