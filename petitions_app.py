@@ -76,15 +76,17 @@ if department_filter != "All":
     filtered_df = filtered_df[filtered_df["department"] == department_filter]
 
 # Sort and reset index first
-sorted_df = filtered_df.sort_values(by="signatures", ascending=False).reset_index(drop=True)
+filtered_df = filtered_df.sort_values(by="signatures", ascending=False).reset_index(drop=True)
 
-# Convert to HTML table (clean)
-html_table = sorted_df.to_html(
-    index=False,          # don't show DataFrame index
-    classes="table table-striped table-hover",  # nice Bootstrap style classes (optional)
-    border=0,             # no border
-    escape=False          # allow HTML links in 'name' column to render
-)
+# Pagination
+page_size = 50
+total_pages = (len(filtered_df) - 1) // page_size + 1
 
-# Display HTML in Streamlit
-st.markdown(html_table, unsafe_allow_html=True)
+page_number = st.number_input("Page number", min_value=1, max_value=total_pages, value=1)
+
+start_idx = (page_number - 1) * page_size
+end_idx = start_idx + page_size
+
+paged_df = filtered_df.iloc[start_idx:end_idx]
+
+st.dataframe(paged_df, use_container_width=True)
