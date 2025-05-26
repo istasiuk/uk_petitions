@@ -129,7 +129,9 @@ st.write(f"Showing page {page} of {total_pages}")
 date_js_formatter = """
 function(params) {
     if (!params.value) return '';
-    let date = new Date(params.value);
+    // Strip microseconds and timezone if present
+    let isoDate = params.value.toString().split('.')[0];
+    let date = new Date(isoDate);
     if (isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-GB');
 }
