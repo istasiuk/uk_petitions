@@ -121,5 +121,9 @@ st.write(f"Showing page {page} of {total_pages}")
 df_display = paged_df.sort_values(by="signatures", ascending=False).reset_index(drop=True)
 df_display.index = range(1, len(df_display) + 1)
 df_display.index.name = None  # Optional: remove "index" label
+
+# Apply number formatting to "signatures" with thousands separator
+styled_df = df_display.style.format({"signatures": "{:,}"})
+
 st.dataframe(df_display)
 
