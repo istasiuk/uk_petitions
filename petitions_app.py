@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 import math
 
+# Cache the function to avoid refetching every time
 @st.cache_data(show_spinner=True)
 def fetch_petitions():
     all_rows = []
@@ -25,21 +26,21 @@ def fetch_petitions():
             departments = attrs.get("departments", [])
 
             all_rows.append({
-                "name": f"[{attrs.get('action')}]({links.get('self').replace('.json', '')})" if links.get("self") else attrs.get('action'),
-                "state": attrs.get("state"),
-                "signatures": attrs.get("signature_count"),
-                "created_at": attrs.get("created_at"),
-                "rejected_at": attrs.get("rejected_at"),
-                "opened_at": attrs.get("opened_at"),
-                "closed_at": attrs.get("closed_at"),
-                "response_threshold_reached_at": attrs.get("response_threshold_reached_at"),
-                "government_response_at": attrs.get("government_response_at"),
-                "debate_threshold_reached_at": attrs.get("debate_threshold_reached_at"),
-                "scheduled_debate_date": attrs.get("scheduled_debate_date"),
-                "debate_outcome_at": attrs.get("debate_outcome_at"),
-                "response": response_data.get("summary"),
-                "debate_url": debate.get("video_url"),
-                "department": departments[0].get("name") if departments else None
+                "Petition": f"[{attrs.get('action')}]({links.get('self').replace('.json', '')})" if links.get("self") else attrs.get('action'),
+                "State": attrs.get("state"),
+                "Signatures": attrs.get("signature_count"),
+                "Created at": attrs.get("created_at"),
+                "Rejected at": attrs.get("rejected_at"),
+                "Opened at": attrs.get("opened_at"),
+                "Closed at": attrs.get("closed_at"),
+                "Response threshold (10,000) reached at": attrs.get("response_threshold_reached_at"),
+                "Government response at": attrs.get("government_response_at"),
+                "Debate threshold (100,000) reached at": attrs.get("debate_threshold_reached_at"),
+                "Scheduled debate date": attrs.get("scheduled_debate_date"),
+                "Debate outcome at": attrs.get("debate_outcome_at"),
+                "Response": response_data.get("summary"),
+                "Debate video": debate.get("video_url"),
+                "Department": departments[0].get("name") if departments else None
             })
 
         next_link = data.get("links", {}).get("next")
@@ -51,79 +52,79 @@ def fetch_petitions():
     df = pd.DataFrame(all_rows)
     return df
 
-# Add Title
-st.title("UK Parliament Petitions Viewer")
+# Title
+st.title("🇬🇧 UK Parliament Petitions Viewer")
 
-# Add Refresh Data button
+# Refresh Button
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
-    st.rerun()  # refresh the page after clearing cache
+    st.rerun()
 
+# Spinner while loading data
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
 
-st.success(f"{len(df)} petitions")
+st.success(f"{len(df)} petitions loaded")
 
-# Optional filters
-state_filter = st.selectbox("Filter by state:", ["All"] + sorted(df['state'].dropna().unique().tolist()))
-department_filter = st.selectbox("Filter by department:", ["All"] + sorted(df['department'].dropna().unique().tolist()))
+# ----------- Compact Filter Layout -------------
+col1, col2 = st.columns(2)
 
+with col1:
+    state_filter = st.selectbox(
+        "State",
+        ["All"] + sorted(df['State'].dropna().unique().tolist())
+    )
+
+with col2:
+    department_filter = st.selectbox(
+        "Department",
+        ["All"] + sorted(df['Department'].dropna().unique().tolist())
+    )
+
+# Filter DataFrame
 filtered_df = df.copy()
 
 if state_filter != "All":
-    filtered_df = filtered_df[filtered_df["state"] == state_filter]
+    filtered_df = filtered_df[filtered_df["State"] == state_filter]
 
 if department_filter != "All":
-    filtered_df = filtered_df[filtered_df["department"] == department_filter]
+    filtered_df = filtered_df[filtered_df["Department"] == department_filter]
 
-# Number of items per page
+# ----------- Pagination -------------
 ITEMS_PER_PAGE = 50
-
-# After filtering your DataFrame `filtered_df`
 total_items = len(filtered_df)
 total_pages = math.ceil(total_items / ITEMS_PER_PAGE)
 
-# Page selector
 page = st.selectbox(
     "Select page:",
     options=list(range(1, total_pages + 1)),
-    index=0  # default to first page
+    index=0
 )
 
-# Calculate start and end index of the current page
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
-
-# Slice the DataFrame to the current page
 paged_df = filtered_df.iloc[start_idx:end_idx]
 
-# Format date columns to dd/mm/yyyy
+# ----------- Date Formatting -------------
 date_columns = [
-    "created_at",
-    "rejected_at",
-    "opened_at",
-    "closed_at",
-    "response_threshold_reached_at",
-    "government_response_at",
-    "debate_threshold_reached_at",
-    "scheduled_debate_date",
-    "debate_outcome_at",
+    "Created at", "Rejected at", "Opened at", "Closed at",
+    "Response threshold (10,000) reached at", "Government response at",
+    "Debate threshold (100,000) reached at", "Scheduled debate date",
+    "Debate outcome at",
 ]
 
 for col in date_columns:
     if col in paged_df.columns:
-        # Make a copy to avoid SettingWithCopyWarning
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
+# ----------- Display Data -------------
 st.write(f"Showing page {page} of {total_pages}")
 
-# Show the paginated DataFrame
-df_display = paged_df.sort_values(by="signatures", ascending=False).reset_index(drop=True)
+df_display = paged_df.sort_values(by="Signatures", ascending=False).reset_index(drop=True)
 df_display.index = range(1, len(df_display) + 1)
-df_display.index.name = None  # Optional: remove "index" label
 
-# Apply number formatting to "signatures" with thousands separator
-styled_df = df_display.style.format({"signatures": "{:,}"})
+# Format Signatures with thousands separator
+styled_df = df_display.style.format({"Signatures": "{:,}"})
 
-st.dataframe(styled_df)
-
+# Display in Streamlit
+st.dataframe(styled_df, use_container_width=True)
