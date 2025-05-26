@@ -52,8 +52,13 @@ def fetch_petitions():
     df = pd.DataFrame(all_rows)
     return df
 
-# UI
+# Add Title
 st.title("📋 UK Parliament Petitions Viewer")
+
+# Add Refresh Data button
+if st.button("🔄 Refresh Data"):
+    fetch_petitions.clear()
+    st.experimental_rerun()  # refresh the page after clearing cache
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
@@ -73,7 +78,3 @@ if department_filter != "All":
     filtered_df = filtered_df[filtered_df["department"] == department_filter]
 
 st.dataframe(filtered_df.sort_values(by="signatures", ascending=False).reset_index(drop=True))
-
-# Refresh Button
-if st.button("🔄 Refresh Data"):
-    fetch_petitions.clear()
