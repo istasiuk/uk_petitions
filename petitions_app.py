@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 import streamlit as st
-from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
 @st.cache_data(show_spinner=True)
 def fetch_petitions():
