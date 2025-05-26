@@ -144,13 +144,15 @@ css = f"""
         width: 100%;
         border-collapse: collapse;
     }}
+    /* Force all headers and cells to left align */
     table th, table td {{
-        text-align: left;
+        text-align: left !important;
         padding: 6px 8px;
         border: 1px solid #ddd;
     }}
-    table td:nth-child({signatures_col_index}), table th:nth-child({signatures_col_index}) {{
-        text-align: right;
+    /* Override only Signatures column header and cells to right align */
+    table th:nth-child({signatures_col_index}), table td:nth-child({signatures_col_index}) {{
+        text-align: right !important;
     }}
 </style>
 """
