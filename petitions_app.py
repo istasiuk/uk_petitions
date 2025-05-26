@@ -28,7 +28,7 @@ def fetch_petitions():
             departments = attrs.get("departments", [])
 
             all_rows.append({
-                "Petition": f"[{attrs.get('action')}]({links.get('self').replace('.json', '')})" if links.get("self") else attrs.get('action'),
+                "Petition": f'<a href="{links.get("self").replace(".json", "")}" target="_blank">{attrs.get("action")}</a>' if links.get("self") else attrs.get("action"),
                 "State": attrs.get("state"),
                 "Signatures": attrs.get("signature_count"),
                 "Created at": attrs.get("created_at"),
@@ -120,10 +120,15 @@ for col in date_columns:
 
 st.write(f"Showing page {page} of {total_pages}")
 
+# Sort and reset index as before
 df_display = paged_df.sort_values(by="Signatures", ascending=False).reset_index(drop=True)
 df_display.index = range(1, len(df_display) + 1)
 df_display.index.name = None
 
-styled_df = df_display.style.format({"Signatures": "{:,}"})
+# Format Signatures column
+df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
 
-st.dataframe(styled_df)
+# Convert DataFrame to HTML, allow links
+html_table = df_display.to_html(escape=False)
+
+st.markdown(html_table, unsafe_allow_html=True)
