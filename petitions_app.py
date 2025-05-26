@@ -118,4 +118,8 @@ for col in date_columns:
 st.write(f"Showing page {page} of {total_pages}")
 
 # Show the paginated DataFrame
-st.dataframe(paged_df.sort_values(by="signatures", ascending=False).reset_index(drop=True).style.hide(axis='index'))
+df_display = paged_df.sort_values(by="signatures", ascending=False).reset_index(drop=True)
+df_display.index = range(1, len(df_display) + 1)
+df_display.index.name = None  # Optional: remove "index" label
+st.dataframe(df_display)
+
