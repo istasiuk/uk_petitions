@@ -110,8 +110,10 @@ with col2:
     department_filter = st.selectbox("Department:", ["All"] + sorted(filtered_df['Department'].dropna().unique().tolist()))
 
 # Apply filters before determining total pages
-if state_filter != "All":
-    filtered_df = filtered_df[filtered_df["State"] == state_filter]
+if state_filter == "All":
+    filtered_data = filtered_df  # no filtering
+else:
+    filtered_data = filtered_df[filtered_df["State"] == state_filter]
 
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["Department"] == department_filter]
