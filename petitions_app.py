@@ -54,13 +54,21 @@ def fetch_petitions():
     df = pd.DataFrame(all_rows)
     return df
 
+def add_tooltip(text, max_len=100):
+    if not text:
+        return ""
+    short_text = text if len(text) <= max_len else text[:max_len] + "..."
+    # Escape quotes in text for title attribute
+    escaped_text = text.replace('"', '&quot;').replace("'", "&apos;")
+    return f'<span title="{escaped_text}">{short_text}</span>'
+
 # Add Title
 st.title("UK Parliament Petitions Viewer")
 
 # Add Refresh Data button
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
-    st.rerun()  # refresh the page after clearing cache
+    st.rerun()
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
@@ -128,14 +136,16 @@ df_display.index.name = None
 # Format Signatures column
 df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
 
+# Apply tooltip truncation to Response column
+df_display["Response"] = df_display["Response"].apply(add_tooltip)
+
 # Replace NaN or None with empty string for clean HTML display
 df_display = df_display.fillna("")
 
-# Convert DataFrame to HTML, allow links
+# Convert DataFrame to HTML, allow links and tooltips
 html_table = df_display.to_html(escape=False)
 
 # CSS to left align all cells except "Signatures" which is right aligned
-# Use nth-child to target the column by position (find out the "Signatures" column index +2)
 signatures_col_index = df_display.columns.get_loc("Signatures") + 2
 
 css = f"""
@@ -149,10 +159,16 @@ css = f"""
         text-align: left !important;
         padding: 6px 8px;
         border: 1px solid #ddd;
+        vertical-align: top;
     }}
     /* Override only Signatures column header and cells to right align */
     table th:nth-child({signatures_col_index}), table td:nth-child({signatures_col_index}) {{
         text-align: right !important;
+    }}
+    /* Optional: cursor pointer for tooltip */
+    table td span[title] {{
+        cursor: help;
+        border-bottom: 1px dotted #999;
     }}
 </style>
 """
