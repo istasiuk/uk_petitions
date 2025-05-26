@@ -95,19 +95,27 @@ gb = GridOptionsBuilder.from_dataframe(paged_df)
 
 # JavaScript code for rendering clickable link in 'name' column
 link_renderer = JsCode('''
-    function(params) {
-        if (params.data.name_url) {
-            return `<a href="${params.data.name_url}" target="_blank" style="color:#1a73e8;">${params.data.name_text}</a>`;
-        } else {
-            return params.data.name_text;
-        }
+function(params) {
+    const mdLink = params.value || "";
+    const match = mdLink.match(/\\[(.*?)\\]\\((.*?)\\)/);
+    if (match) {
+        const text = match[1];
+        const url = match[2];
+        return `<a href="${url}" target="_blank" style="color:#1a73e8;">${text}</a>`;
+    } else {
+        return mdLink;
     }
+}
 ''')
 
-# Configure the 'name' column to use custom cell renderer
-gb.configure_column("name_text", header_name="Name", cellRenderer=link_renderer, autoHeight=True, wrapText=True)
-# Hide the raw URL column from view
-gb.configure_column("name_url", hide=True)
+# Configure the 'name' column 
+gb.configure_column(
+    "name",
+    header_name="petition",
+    cellRenderer=link_renderer,
+    autoHeight=True,
+    wrapText=True
+)
 
 grid_options = gb.build()
 
