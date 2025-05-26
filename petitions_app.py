@@ -196,7 +196,7 @@ css = f"""
     thead th {{
         position: sticky;
         top: 0;
-        background: #1e1e1e;
+        background: #16181d;
         color: #f0f0f0;
         z-index: 2;
         text-align: left !important;
