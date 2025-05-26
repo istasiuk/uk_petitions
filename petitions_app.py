@@ -75,4 +75,9 @@ if state_filter != "All":
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["department"] == department_filter]
 
-st.dataframe(filtered_df.sort_values(by="signatures", ascending=False).reset_index(drop=True))
+st.markdown(
+    filtered_df.sort_values(by="signatures", ascending=False)
+    .reset_index(drop=True)
+    .to_markdown(index=False),
+    unsafe_allow_html=True
+)
