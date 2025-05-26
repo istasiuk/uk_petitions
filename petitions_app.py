@@ -128,7 +128,6 @@ st.write(f"Showing page {page} of {total_pages}")
 
 # Sort and reset index as before
 df_display = paged_df.sort_values(by="Signatures", ascending=False).reset_index(drop=True)
-df_display.index = range(1, len(df_display) + 1)
 df_display.index.name = None
 
 # Format Signatures column
@@ -141,7 +140,7 @@ df_display["Response"] = df_display["Response"].apply(add_tooltip)
 df_display = df_display.fillna("")
 
 # Convert DataFrame to HTML, allow links and tooltips
-html_table = df_display.to_html(escape=False)
+html_table = df_display.to_html(escape=False, index=False)
 
 # CSS to left align all cells except "Signatures" which is right aligned
 signatures_col_index = df_display.columns.get_loc("Signatures") + 2
