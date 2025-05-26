@@ -93,7 +93,7 @@ with st.spinner("Fetching petitions..."):
 st.success(f"{len(df)} petitions")
 
 # Number of items per page
-ITEMS_PER_PAGE = 10
+ITEMS_PER_PAGE = 50
 
 filtered_df = df.copy()
 
@@ -101,9 +101,13 @@ filtered_df = df.copy()
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    state_filter = st.selectbox("Select State:", ["All"] + sorted(filtered_df['State'].dropna().unique().tolist()))
+    state_filter = st.multiselect(
+        "State:",
+        options=["All"] + sorted(filtered_df['State'].dropna().unique().tolist()),
+        default=["All"]
+    )
 with col2:
-    department_filter = st.selectbox("Select Department:", ["All"] + sorted(filtered_df['Department'].dropna().unique().tolist()))
+    department_filter = st.selectbox("Department:", ["All"] + sorted(filtered_df['Department'].dropna().unique().tolist()))
 
 # Apply filters before determining total pages
 if state_filter != "All":
@@ -117,7 +121,7 @@ total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
 with col3:
     page = st.selectbox(
-        "Select page:",
+        "Page:",
         options=list(range(1, total_pages + 1)),
         index=0  # default to first page
     )
