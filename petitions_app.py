@@ -62,16 +62,22 @@ def add_tooltip(text, max_len=50):
     return f'<span title="{escaped_text}">{short_text}</span>'
 
 def avg_days_between(df, start_col, end_col):
-    # Convert columns to datetime (if not already done)
     start_dates = pd.to_datetime(df[start_col], errors='coerce')
     end_dates = pd.to_datetime(df[end_col], errors='coerce')
 
-    # Calculate the difference in days, drop NaT
+    # Convert both to naive (remove timezone info) or both to aware (set the same timezone)
+    # Option 1: Remove timezone info (make naive)
+    if start_dates.dt.tz is not None:
+        start_dates = start_dates.dt.tz_convert(None)
+    if end_dates.dt.tz is not None:
+        end_dates = end_dates.dt.tz_convert(None)
+
+    # Now calculate difference in days
     diffs = (end_dates - start_dates).dt.days.dropna()
 
     if len(diffs) == 0:
         return None
-    return round(diffs.mean(), 1)
+    return diffs.mean()
 
 # Add Title
 st.title("UK Parliament Petitions Viewer")
@@ -79,7 +85,7 @@ st.title("UK Parliament Petitions Viewer")
 # Add Refresh Data button
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
-    st.experimental_rerun()
+    st.rerun()
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
