@@ -196,11 +196,13 @@ css = f"""
     thead th {{
         position: sticky;
         top: 0;
-        background: #f9f9f9;
+        background: #f1f1f1;
         z-index: 2;
         text-align: left !important;
         padding: 6px 8px;
         border: 1px solid #ddd;
+        font-weight: bold;
+        box-shadow: inset 0 -1px 0 #ccc, 0 2px 5px rgba(0,0,0,0.1);
     }}
     table th, table td {{
         text-align: left !important;
@@ -224,6 +226,7 @@ css = f"""
     }}
 </style>
 """
+
 
 
 st.markdown(
