@@ -149,9 +149,9 @@ signatures_col_index = df_display.columns.get_loc("Signatures") + 2
 css = f"""
 <style>
     table {{
-        width: auto;
-        max-width: 100%;
+        width: 100%;
         border-collapse: collapse;
+        table-layout: fixed;
     }}
     table th, table td {{
         text-align: left !important;
@@ -160,10 +160,14 @@ css = f"""
         vertical-align: top;
         word-wrap: break-word;
         white-space: normal;
-        max-width: 300px;
+        overflow-wrap: break-word;
     }}
     table th:nth-child({signatures_col_index}), table td:nth-child({signatures_col_index}) {{
         text-align: right !important;
+    }}
+    table td:nth-child(1),
+    table td:nth-child(12) {{
+        max-width: 250px;
     }}
     table td span[title] {{
         cursor: help;
