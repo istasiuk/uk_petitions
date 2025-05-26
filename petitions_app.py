@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 import streamlit as st
-import math
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 # Set wide layout to allow columns side-by-side
 st.set_page_config(layout="wide")
@@ -28,11 +28,11 @@ def fetch_petitions():
             departments = attrs.get("departments", [])
 
             all_rows.append({
-                "Petition": f'<a href="{links.get("self").replace(".json", "")}" target="_blank">{attrs.get("action")}</a>' if links.get("self") else attrs.get("action"),
+                "Petition": attrs.get("action"),
+                "Petition URL": links.get("self").replace(".json", "") if links.get("self") else "",
                 "State": attrs.get("state"),
                 "Signatures": attrs.get("signature_count"),
                 "Created at": attrs.get("created_at"),
-                "Rejected at": attrs.get("rejected_at"),
                 "Opened at": attrs.get("opened_at"),
                 "Closed at": attrs.get("closed_at"),
                 "Response threshold (10,000) reached at": attrs.get("response_threshold_reached_at"),
@@ -41,7 +41,7 @@ def fetch_petitions():
                 "Scheduled debate date": attrs.get("scheduled_debate_date"),
                 "Debate outcome at": attrs.get("debate_outcome_at"),
                 "Response": response_data.get("summary"),
-                "Debate video": f'<a href="{debate.get("video_url")}" target="_blank">Video</a>' if debate.get("video_url") else "",
+                "Debate video URL": debate.get("video_url") if debate.get("video_url") else "",
                 "Department": departments[0].get("name") if departments else None
             })
 
@@ -54,14 +54,6 @@ def fetch_petitions():
     df = pd.DataFrame(all_rows)
     return df
 
-def add_tooltip(text, max_len=100):
-    if not text:
-        return ""
-    short_text = text if len(text) <= max_len else text[:max_len] + "..."
-    # Escape quotes in text for title attribute
-    escaped_text = text.replace('"', '&quot;').replace("'", "&apos;")
-    return f'<span title="{escaped_text}">{short_text}</span>'
-
 # Add Title
 st.title("UK Parliament Petitions Viewer")
 
@@ -73,46 +65,31 @@ if st.button("⟳ Refresh Data"):
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
 
-st.success(f"{len(df)} petitions")
+st.success(f"{len(df)} petitions fetched")
 
-# Number of items per page
+# Number of items per page for manual pagination controls (not used here since AgGrid has built-in pagination)
 ITEMS_PER_PAGE = 50
 
 filtered_df = df.copy()
 
-# Filters and page selector in one row using columns
-col1, col2, col3 = st.columns(3)
+# Filters in one row using columns
+col1, col2 = st.columns(2)
 
 with col1:
     state_filter = st.selectbox("Select State:", ["All"] + sorted(filtered_df['State'].dropna().unique().tolist()))
 with col2:
     department_filter = st.selectbox("Select Department:", ["All"] + sorted(filtered_df['Department'].dropna().unique().tolist()))
 
-# Apply filters before determining total pages
+# Apply filters
 if state_filter != "All":
     filtered_df = filtered_df[filtered_df["State"] == state_filter]
 
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["Department"] == department_filter]
 
-total_items = len(filtered_df)
-total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
-
-with col3:
-    page = st.selectbox(
-        "Select page:",
-        options=list(range(1, total_pages + 1)),
-        index=0  # default to first page
-    )
-
-start_idx = (page - 1) * ITEMS_PER_PAGE
-end_idx = start_idx + ITEMS_PER_PAGE
-
-paged_df = filtered_df.iloc[start_idx:end_idx]
-
+# Format dates
 date_columns = [
     "Created at",
-    "Rejected at",
     "Opened at",
     "Closed at",
     "Response threshold (10,000) reached at",
@@ -123,54 +100,61 @@ date_columns = [
 ]
 
 for col in date_columns:
-    if col in paged_df.columns:
-        paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
+    if col in filtered_df.columns:
+        filtered_df[col] = pd.to_datetime(filtered_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
-st.write(f"Showing page {page} of {total_pages}")
+# Format signatures with commas
+filtered_df["Signatures"] = filtered_df["Signatures"].map("{:,}".format)
 
-# Sort and reset index as before
-df_display = paged_df.sort_values(by="Signatures", ascending=False).reset_index(drop=True)
-df_display.index = range(1, len(df_display) + 1)
-df_display.index.name = None
+# Prepare clickable URLs in a new column for AgGrid cellRenderer
+def make_link(url):
+    if url:
+        return f'<a href="{url}" target="_blank" rel="noopener noreferrer">Link</a>'
+    return ""
 
-# Format Signatures column
-df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
+filtered_df["Petition Link"] = filtered_df["Petition URL"].apply(make_link)
+filtered_df["Debate Video"] = filtered_df["Debate video URL"].apply(make_link)
 
-# Apply tooltip truncation to Response column
-df_display["Response"] = df_display["Response"].apply(add_tooltip)
+# Drop original URL columns from display if you want (optional)
+filtered_df = filtered_df.drop(columns=["Petition URL", "Debate video URL"])
 
-# Replace NaN or None with empty string for clean HTML display
-df_display = df_display.fillna("")
+# Rearrange columns for better UX
+cols_order = [
+    "Petition", "Petition Link", "State", "Signatures", "Created at", "Opened at", "Closed at",
+    "Response threshold (10,000) reached at", "Government response at", "Debate threshold (100,000) reached at",
+    "Scheduled debate date", "Debate outcome at", "Response", "Debate Video", "Department"
+]
+filtered_df = filtered_df[cols_order]
 
-# Convert DataFrame to HTML, allow links and tooltips
-html_table = df_display.to_html(escape=False)
+# Build AgGrid options
+gb = GridOptionsBuilder.from_dataframe(filtered_df)
 
-# CSS to left align all cells except "Signatures" which is right aligned
-signatures_col_index = df_display.columns.get_loc("Signatures") + 2
+# Freeze (pin) the first column ("Petition")
+gb.configure_column("Petition", pinned="left", editable=False, filter=True, sortable=True, wrapText=True, autoHeight=True)
 
-css = f"""
-<style>
-    table {{
-        width: 100%;
-        border-collapse: collapse;
-    }}
-    /* Force all headers and cells to left align */
-    table th, table td {{
-        text-align: left !important;
-        padding: 6px 8px;
-        border: 1px solid #ddd;
-        vertical-align: top;
-    }}
-    /* Override only Signatures column header and cells to right align */
-    table th:nth-child({signatures_col_index}), table td:nth-child({signatures_col_index}) {{
-        text-align: right !important;
-    }}
-    /* Optional: cursor pointer for tooltip */
-    table td span[title] {{
-        cursor: help;
-        border-bottom: 1px dotted #999;
-    }}
-</style>
-"""
+# Make "Petition Link" and "Debate Video" render HTML links
+gb.configure_column("Petition Link", cellRenderer='agGroupCellRenderer', editable=False, filter=False, sortable=False)
+gb.configure_column("Debate Video", cellRenderer='agGroupCellRenderer', editable=False, filter=False, sortable=False)
 
-st.markdown(css + html_table, unsafe_allow_html=True)
+# Set other columns non-editable, enable filtering & sorting
+for col in filtered_df.columns:
+    if col not in ["Petition", "Petition Link", "Debate Video"]:
+        gb.configure_column(col, editable=False, filter=True, sortable=True, wrapText=True, autoHeight=True)
+
+# Enable pagination
+gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=50)
+
+grid_options = gb.build()
+
+# Display the table
+AgGrid(
+    filtered_df,
+    gridOptions=grid_options,
+    enable_enterprise_modules=False,
+    allow_unsafe_jscode=True,
+    theme="material",  # optional: material, balham, alpine, dark
+    height=600,
+    fit_columns_on_grid_load=True,
+    reload_data=False,
+)
+
