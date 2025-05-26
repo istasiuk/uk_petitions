@@ -52,10 +52,10 @@ def fetch_petitions():
     return df
 
 # Add Title
-st.title("📋 UK Parliament Petitions Viewer")
+st.title("UK Parliament Petitions Viewer")
 
 # Add Refresh Data button
-if st.button("🔄 Refresh Data"):
+if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
     st.rerun()  # refresh the page after clearing cache
 
@@ -96,6 +96,23 @@ end_idx = start_idx + ITEMS_PER_PAGE
 
 # Slice the DataFrame to the current page
 paged_df = filtered_df.iloc[start_idx:end_idx]
+
+# Format date columns to dd/mm/yyyy
+date_columns = [
+    "created_at",
+    "rejected_at",
+    "opened_at",
+    "closed_at",
+    "response_threshold_reached_at",
+    "government_response_at",
+    "debate_threshold_reached_at",
+    "scheduled_debate_date",
+    "debate_outcome_at",
+]
+
+for col in date_columns:
+    if col in paged_df.columns:
+        paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
 st.write(f"Showing page {page} of {total_pages}")
 
