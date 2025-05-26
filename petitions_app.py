@@ -146,6 +146,23 @@ gb.configure_column(
     valueFormatter="x.toLocaleString('en-GB')"
 )
 
+# Add date formatters
+for col in date_columns:
+    if col in paged_df.columns:
+        gb.configure_column(
+            col,
+            valueFormatter="""
+                function(params) {
+                    if (!params.value) return '';
+                    let d = new Date(params.value);
+                    let day = String(d.getDate()).padStart(2, '0');
+                    let month = String(d.getMonth() + 1).padStart(2, '0');
+                    let year = d.getFullYear();
+                    return day + '/' + month + '/' + year;
+                }
+            """
+        )
+
 grid_options = gb.build()
 
 AgGrid(
