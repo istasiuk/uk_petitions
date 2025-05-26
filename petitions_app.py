@@ -130,7 +130,7 @@ date_js_formatter = """
 function(params) {
     if (!params.value) return '';
     let date = new Date(params.value);
-    if (isNaN(date)) return '';
+    if (isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-GB');
 }
 """
@@ -156,7 +156,7 @@ for col in date_columns:
             col,
             type=["dateColumnFilter"],
             valueFormatter=date_js_formatter,
-            js_code=True  # Required for JS to execute properly
+            js_code=True
         )
 
 # Format Signatures with comma separator
