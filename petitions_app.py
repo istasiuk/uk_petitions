@@ -77,14 +77,18 @@ if department_filter != "All":
     filtered_df = filtered_df[filtered_df["department"] == department_filter]
 
 # Number of items per page
-ITEMS_PER_PAGE = 20
+ITEMS_PER_PAGE = 50
 
 # After filtering your DataFrame `filtered_df`
 total_items = len(filtered_df)
 total_pages = math.ceil(total_items / ITEMS_PER_PAGE)
 
-# Page selector (slider or number input)
-page = st.number_input("Page", min_value=1, max_value=total_pages, value=1, step=1)
+# Page selector
+page = st.selectbox(
+    "Select page:",
+    options=list(range(1, total_pages + 1)),
+    index=0  # default to first page
+)
 
 # Calculate start and end index of the current page
 start_idx = (page - 1) * ITEMS_PER_PAGE
@@ -93,7 +97,7 @@ end_idx = start_idx + ITEMS_PER_PAGE
 # Slice the DataFrame to the current page
 paged_df = filtered_df.iloc[start_idx:end_idx]
 
-st.write(f"Showing page {page} of {total_pages} ({total_items} petitions total)")
+st.write(f"Showing page {page} of {total_pages}")
 
 # Show the paginated DataFrame
 st.dataframe(paged_df.sort_values(by="signatures", ascending=False).reset_index(drop=True))
