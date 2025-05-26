@@ -4,6 +4,7 @@ import streamlit as st
 import math
 from st_aggrid import AgGrid, GridOptionsBuilder
 
+# Set wide layout to allow columns side-by-side
 st.set_page_config(layout="wide")
 
 @st.cache_data(show_spinner=True)
@@ -53,8 +54,10 @@ def fetch_petitions():
     df = pd.DataFrame(all_rows)
     return df
 
+# Add Title
 st.title("UK Parliament Petitions Viewer")
 
+# Add Refresh Data button
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
     st.rerun()
@@ -64,9 +67,12 @@ with st.spinner("Fetching petitions..."):
 
 st.success(f"{len(df)} petitions")
 
+# Number of items per page
 ITEMS_PER_PAGE = 50
+
 filtered_df = df.copy()
 
+# Filters and page selector in one row using columns
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -74,6 +80,7 @@ with col1:
 with col2:
     department_filter = st.selectbox("Department:", ["All"] + sorted(filtered_df['Department'].dropna().unique().tolist()))
 
+# Apply filters before determining total pages
 if state_filter != "All":
     filtered_df = filtered_df[filtered_df["State"] == state_filter]
 
@@ -87,13 +94,15 @@ with col3:
     page = st.selectbox(
         "Page:",
         options=list(range(1, total_pages + 1)),
-        index=0
+        index=0  # default to first page
     )
 
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
+
 paged_df = filtered_df.iloc[start_idx:end_idx].copy()
 
+# Date columns list
 date_columns = [
     "Created at",
     "Opened at",
@@ -105,18 +114,22 @@ date_columns = [
     "Debate outcome at",
 ]
 
+# Convert date columns to datetime (keep as datetime for sorting)
 for col in date_columns:
     if col in paged_df.columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce')
 
+# Convert Signatures to int (for sorting)
 paged_df["Signatures"] = pd.to_numeric(paged_df["Signatures"], errors='coerce').fillna(0).astype(int)
 
+# Replace NaN or None with empty string for non-date/non-numeric columns to avoid showing "NaT" or NaN
 for col in paged_df.columns:
     if col not in date_columns + ["Signatures", "Petition"]:
         paged_df[col] = paged_df[col].fillna("")
 
 st.write(f"Showing page {page} of {total_pages}")
 
+# AG Grid JS formatter for date columns (UK format dd/mm/yyyy)
 date_js_formatter = """
 function(params) {
     if (!params.value) return '';
@@ -126,6 +139,7 @@ function(params) {
 }
 """
 
+# Configure AG Grid options
 gb = GridOptionsBuilder.from_dataframe(paged_df)
 
 gb.configure_default_column(
@@ -134,9 +148,16 @@ gb.configure_default_column(
     resizable=True,
 )
 
-gb.configure_column("Petition", pinned='left', width=300)
+# Freeze the first column ("Petition") and render as HTML link
+gb.configure_column("Petition", pinned='left', width=300, cellRenderer='html')
+
+# Enable tooltip on Response column for full text on hover
 gb.configure_column("Response", tooltipField="Response", autoHeight=True)
 
+# Render Debate video column as HTML link
+gb.configure_column("Debate video", width=100, cellRenderer='html')
+
+# Configure date columns with date filter and JS formatter
 for col in date_columns:
     if col in paged_df.columns:
         gb.configure_column(
@@ -145,14 +166,17 @@ for col in date_columns:
             valueFormatter=date_js_formatter,
         )
 
+# Configure Signatures column as numeric with comma formatting
 gb.configure_column(
     "Signatures",
     type=["numericColumn"],
     valueFormatter="(params.value != null) ? params.value.toLocaleString() : ''",
 )
 
+
 grid_options = gb.build()
 
+# Display the table using AG Grid
 AgGrid(
     paged_df,
     gridOptions=grid_options,
