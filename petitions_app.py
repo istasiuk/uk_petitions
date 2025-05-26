@@ -125,5 +125,5 @@ df_display.index.name = None  # Optional: remove "index" label
 # Apply number formatting to "signatures" with thousands separator
 styled_df = df_display.style.format({"signatures": "{:,}"})
 
-st.dataframe(df_display)
+st.dataframe(styled_df)
 
