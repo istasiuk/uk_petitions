@@ -1,4 +1,4 @@
 streamlit
 requests
 pandas
-treamlit-aggrid
+streamlit-aggrid
