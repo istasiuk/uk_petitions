@@ -162,15 +162,8 @@ for col in date_columns:
 # Format Signatures with comma separator
 gb.configure_column(
     "Signatures",
-    type=["rightAligned"],
-    valueFormatter="""
-    function(params) {
-        if (params.value === null || params.value === undefined) return '';
-        return params.value.toLocaleString('en-GB');
-    }
-    """,
-    cellStyle={'textAlign': 'right'},
-    js_code=True
+    type=["rightAligned", "numericColumn"],
+    valueFormatter="function(params) { return params.value ? params.value.toLocaleString('en-GB') : ''; }"
 )
 
 grid_options = gb.build()
