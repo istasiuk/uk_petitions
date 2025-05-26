@@ -53,7 +53,7 @@ def fetch_petitions():
     df = pd.DataFrame(all_rows)
     return df
 
-def add_tooltip(text, max_len=100):
+def add_tooltip(text, max_len=50):
     if not text:
         return ""
     short_text = text if len(text) <= max_len else text[:max_len] + "..."
@@ -143,7 +143,7 @@ df_display = df_display.fillna("")
 html_table = df_display.to_html(escape=False, index=False)
 
 # CSS to left align all cells except "Signatures" which is right aligned
-signatures_col_index = df_display.columns.get_loc("Signatures") + 2
+signatures_col_index = df_display.columns.get_loc("Signatures") + 1
 
 css = f"""
 <style>
