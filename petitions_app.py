@@ -102,7 +102,7 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     state_options = sorted(filtered_df['State'].dropna().unique().tolist())
-    state_filter = st.multiselect("State:", options=state_options, default=state_options)
+    state_filter = st.multiselect("State:", options=state_options, default=[])
 
 with col2:
     department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
@@ -111,6 +111,9 @@ with col2:
 # Apply filters
 if state_filter:
     filtered_df = filtered_df[filtered_df["State"].isin(state_filter)]
+else:
+    # If nothing selected, show empty
+    filtered_df = filtered_df.iloc[0:0]
 
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["Department"] == department_filter]
