@@ -163,7 +163,7 @@ for col in date_columns:
 gb.configure_column(
     "Signatures",
     type=["rightAligned", "numericColumn"],
-    valueFormatter="function(params) { return params.value ? params.value.toLocaleString('en-GB') : ''; }"
+    valueFormatter="x.toLocaleString('en-GB')"
 )
 
 grid_options = gb.build()
