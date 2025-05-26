@@ -128,7 +128,31 @@ df_display.index.name = None
 # Format Signatures column
 df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
 
+# Replace NaN or None with empty string for clean HTML display
+df_display = df_display.fillna("")
+
 # Convert DataFrame to HTML, allow links
 html_table = df_display.to_html(escape=False)
 
-st.markdown(html_table, unsafe_allow_html=True)
+# CSS to left align all cells except "Signatures" which is right aligned
+# Use nth-child to target the column by position (find out the "Signatures" column index +1)
+signatures_col_index = df_display.columns.get_loc("Signatures") + 1
+
+css = f"""
+<style>
+    table {{
+        width: 100%;
+        border-collapse: collapse;
+    }}
+    table th, table td {{
+        text-align: left;
+        padding: 6px 8px;
+        border: 1px solid #ddd;
+    }}
+    table td:nth-child({signatures_col_index}), table th:nth-child({signatures_col_index}) {{
+        text-align: right;
+    }}
+</style>
+"""
+
+st.markdown(css + html_table, unsafe_allow_html=True)
