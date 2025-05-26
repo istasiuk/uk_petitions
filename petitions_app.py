@@ -196,7 +196,7 @@ css = f"""
     thead th {{
         position: sticky;
         top: 0;
-        background: #16181d;
+        background: #0e1117;
         color: #f0f0f0;
         z-index: 2;
         text-align: left !important;
@@ -227,8 +227,6 @@ css = f"""
     }}
 </style>
 """
-
-
 
 st.markdown(
     f"""
