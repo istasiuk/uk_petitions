@@ -80,7 +80,7 @@ with col1:
 with col2:
     department_filter = st.selectbox("Department:", ["All"] + sorted(filtered_df['Department'].dropna().unique().tolist()))
 
-# Apply filters before determining total pages
+# Apply filters
 if state_filter != "All":
     filtered_df = filtered_df[filtered_df["State"] == state_filter]
 
@@ -91,11 +91,7 @@ total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
 with col3:
-    page = st.selectbox(
-        "Page:",
-        options=list(range(1, total_pages + 1)),
-        index=0  # default to first page
-    )
+    page = st.selectbox("Page:", options=list(range(1, total_pages + 1)), index=0)
 
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
@@ -114,22 +110,22 @@ date_columns = [
     "Debate outcome at",
 ]
 
-# Convert date columns to datetime (keep as datetime for sorting)
+# Convert date columns to datetime
 for col in date_columns:
     if col in paged_df.columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce')
 
-# Convert Signatures to int (for sorting)
+# Convert Signatures to int
 paged_df["Signatures"] = pd.to_numeric(paged_df["Signatures"], errors='coerce').fillna(0).astype(int)
 
-# Replace NaN or None with empty string for non-date/non-numeric columns to avoid showing "NaT" or NaN
+# Replace NaN or None with empty string
 for col in paged_df.columns:
     if col not in date_columns + ["Signatures", "Petition"]:
         paged_df[col] = paged_df[col].fillna("")
 
 st.write(f"Showing page {page} of {total_pages}")
 
-# AG Grid JS formatter for date columns (UK format dd/mm/yyyy)
+# JS formatter for UK date format
 date_js_formatter = """
 function(params) {
     if (!params.value) return '';
@@ -139,44 +135,39 @@ function(params) {
 }
 """
 
-# Configure AG Grid options
+# AG Grid setup
 gb = GridOptionsBuilder.from_dataframe(paged_df)
 
-gb.configure_default_column(
-    sortable=True,
-    filter=True,
-    resizable=True,
-)
+gb.configure_default_column(sortable=True, filter=True, resizable=True)
 
-# Freeze the first column ("Petition") and render as HTML link
+# Format Petition as HTML link
 gb.configure_column("Petition", pinned='left', width=300, cellRenderer='html')
 
-# Enable tooltip on Response column for full text on hover
+# Tooltip on Response
 gb.configure_column("Response", tooltipField="Response", autoHeight=True)
 
-# Render Debate video column as HTML link
+# Debate video as HTML link
 gb.configure_column("Debate video", width=100, cellRenderer='html')
 
-# Configure date columns with date filter and JS formatter
+# Format all date columns with UK format and date filter
 for col in date_columns:
     if col in paged_df.columns:
         gb.configure_column(
             col,
             type=["dateColumnFilter"],
             valueFormatter=date_js_formatter,
+            js_code=True  # Required for JS to execute properly
         )
 
-# Configure Signatures column as numeric with comma formatting
+# Format Signatures with comma separator
 gb.configure_column(
     "Signatures",
     type=["numericColumn"],
-    valueFormatter="(params.value != null) ? params.value.toLocaleString() : ''",
+    valueFormatter="(params.value != null) ? params.value.toLocaleString() : ''"
 )
-
 
 grid_options = gb.build()
 
-# Display the table using AG Grid
 AgGrid(
     paged_df,
     gridOptions=grid_options,
