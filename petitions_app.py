@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import streamlit as st
 import math
+import numpy as np
 
 # Set wide layout to allow columns side-by-side
 st.set_page_config(layout="wide")
@@ -61,13 +62,23 @@ def add_tooltip(text, max_len=50):
     escaped_text = text.replace('"', '&quot;').replace("'", "&apos;")
     return f'<span title="{escaped_text}">{short_text}</span>'
 
+def avg_days_between(df, start_col, end_col):
+    # Convert columns to datetime, coerce errors
+    start_dates = pd.to_datetime(df[start_col], errors='coerce')
+    end_dates = pd.to_datetime(df[end_col], errors='coerce')
+    # Calculate difference in days
+    diffs = (end_dates - start_dates).dt.days
+    # Filter positive or zero diffs and compute mean, else NaN
+    mean_diff = diffs[diffs >= 0].mean()
+    return round(mean_diff, 1) if not np.isnan(mean_diff) else "N/A"
+
 # Add Title
 st.title("UK Parliament Petitions Viewer")
 
 # Add Refresh Data button
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
-    st.rerun()
+    st.experimental_rerun()
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
@@ -87,13 +98,35 @@ with col1:
 with col2:
     department_filter = st.selectbox("Select Department:", ["All"] + sorted(filtered_df['Department'].dropna().unique().tolist()))
 
-# Apply filters before determining total pages
+# Apply filters before determining total pages and metrics
 if state_filter != "All":
     filtered_df = filtered_df[filtered_df["State"] == state_filter]
 
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["Department"] == department_filter]
 
+# --- Calculate summary numbers ---
+total_petitions = len(filtered_df)
+
+avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
+avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at", "Response threshold (10,000) reached at")
+avg_response_threshold_to_response = avg_days_between(filtered_df, "Response threshold (10,000) reached at", "Government response at")
+avg_opened_to_debate_threshold = avg_days_between(filtered_df, "Opened at", "Debate threshold (100,000) reached at")
+avg_debate_threshold_to_scheduled = avg_days_between(filtered_df, "Debate threshold (100,000) reached at", "Scheduled debate date")
+avg_scheduled_to_outcome = avg_days_between(filtered_df, "Scheduled debate date", "Debate outcome at")
+
+# Display summary in one row with columns
+col_a, col_b, col_c, col_d, col_e, col_f, col_g = st.columns(7)
+
+col_a.metric("Total Petitions", f"{total_petitions:,}")
+col_b.metric("Created → Opened (days)", avg_created_to_opened)
+col_c.metric("Opened → Resp Threshold (days)", avg_opened_to_response_threshold)
+col_d.metric("Resp Threshold → Govt Response (days)", avg_response_threshold_to_response)
+col_e.metric("Opened → Debate Threshold (days)", avg_opened_to_debate_threshold)
+col_f.metric("Debate Threshold → Scheduled (days)", avg_debate_threshold_to_scheduled)
+col_g.metric("Scheduled → Outcome (days)", avg_scheduled_to_outcome)
+
+# Pagination calculations
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
