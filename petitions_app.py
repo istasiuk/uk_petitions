@@ -41,7 +41,7 @@ def fetch_petitions():
                 "Scheduled debate date": attrs.get("scheduled_debate_date"),
                 "Debate outcome at": attrs.get("debate_outcome_at"),
                 "Response": response_data.get("summary"),
-                "Debate video": debate.get("video_url"),
+                "Debate video": f'<a href="{debate.get("video_url")}" target="_blank">Video</a>' if debate.get("video_url") else "",
                 "Department": departments[0].get("name") if departments else None
             })
 
@@ -60,7 +60,7 @@ st.title("UK Parliament Petitions Viewer")
 # Add Refresh Data button
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
-    st.experimental_rerun()  # refresh the page after clearing cache
+    st.rerun()  # refresh the page after clearing cache
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
@@ -135,8 +135,8 @@ df_display = df_display.fillna("")
 html_table = df_display.to_html(escape=False)
 
 # CSS to left align all cells except "Signatures" which is right aligned
-# Use nth-child to target the column by position (find out the "Signatures" column index +1)
-signatures_col_index = df_display.columns.get_loc("Signatures") + 1
+# Use nth-child to target the column by position (find out the "Signatures" column index +2)
+signatures_col_index = df_display.columns.get_loc("Signatures") + 2
 
 css = f"""
 <style>
