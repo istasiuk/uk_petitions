@@ -24,9 +24,7 @@ def fetch_petitions():
             departments = attrs.get("departments", [])
 
             all_rows.append({
-                "id": petition.get("id"),
-                "link": links.get("self"),
-                "name": attrs.get("action"),
+                "name": f"[{attrs.get('action')}]({links.get('self').replace('.json', '')})" if links.get("self") else attrs.get('action'),
                 "state": attrs.get("state"),
                 "signatures": attrs.get("signature_count"),
                 "created_at": attrs.get("created_at"),
@@ -63,7 +61,7 @@ if st.button("🔄 Refresh Data"):
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
 
-st.success(f"Fetched {len(df)} petitions!")
+st.success(f"{len(df)} petitions")
 
 # Optional filters
 state_filter = st.selectbox("Filter by state:", ["All"] + sorted(df['state'].dropna().unique().tolist()))
