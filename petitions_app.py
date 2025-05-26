@@ -132,12 +132,10 @@ gb.configure_default_column(sortable=True, filter=True, resizable=True)
 
 link_cell_renderer = """
 function(params) {
-    if (params.value) {
-        const eDiv = document.createElement('div');
-        eDiv.innerHTML = params.value;
-        return eDiv;
-    }
-    return '';
+    if (!params.value) return '';
+    const eDiv = document.createElement('div');
+    eDiv.innerHTML = params.value;
+    return eDiv;
 }
 """
 
@@ -158,14 +156,6 @@ gb.configure_column(
 )
 
 grid_options = gb.build()
-
-grid_options['columnDefs'] = [
-    {
-        **col,
-        'cellRendererParams': {'suppressHtmlEscaping': True} if col['field'] in ['Petition', 'Debate video'] else {}
-    }
-    for col in grid_options['columnDefs']
-]
 
 AgGrid(
     paged_df,
