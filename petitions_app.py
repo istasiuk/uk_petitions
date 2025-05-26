@@ -130,14 +130,23 @@ gb = GridOptionsBuilder.from_dataframe(paged_df)
 
 gb.configure_default_column(sortable=True, filter=True, resizable=True)
 
+link_cell_renderer = """
+function(params) {
+    if (params.value) {
+        return params.value;
+    }
+    return '';
+}
+"""
+
 # Format Petition as HTML link
-gb.configure_column("Petition", pinned='left', width=300, cellRenderer='html')
+gb.configure_column("Petition", pinned='left', width=300, cellRenderer=link_cell_renderer)
 
 # Tooltip on Response
 gb.configure_column("Response", tooltipField="Response", autoHeight=True)
 
 # Debate video as HTML link
-gb.configure_column("Debate video", width=100, cellRenderer='html')
+gb.configure_column("Debate video", width=100, cellRenderer=link_cell_renderer)
 
 # Format Signatures with comma separator
 gb.configure_column(
