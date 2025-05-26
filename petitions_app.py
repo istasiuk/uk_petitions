@@ -154,7 +154,9 @@ for col in date_columns:
             valueFormatter="""
                 function(params) {
                     if (!params.value) return '';
-                    let d = new Date(params.value);
+                    let cleaned = params.value.replace(/\\.\\d+/, '').replace(/Z|[+\\-]\\d{2}:\\d{2}$/, '');
+                    let d = new Date(cleaned);
+                    if (isNaN(d)) return '';
                     let day = String(d.getDate()).padStart(2, '0');
                     let month = String(d.getMonth() + 1).padStart(2, '0');
                     let year = d.getFullYear();
