@@ -75,9 +75,48 @@ if state_filter != "All":
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["department"] == department_filter]
 
+def df_to_html_table(df):
+    # Escape text for safety (if needed)
+    def safe_html(text):
+        import html
+        return html.escape(str(text))
+
+    html_rows = []
+    # Build header row
+    headers = df.columns.tolist()
+    header_html = "<tr>" + "".join(f"<th>{safe_html(col)}</th>" for col in headers) + "</tr>"
+    html_rows.append(header_html)
+
+    # Build data rows
+    for _, row in df.iterrows():
+        cells = []
+        for col in headers:
+            val = row[col]
+            if col == "name" and isinstance(val, str):
+                # `name` already contains markdown link format, convert to HTML <a> tag manually
+                # The markdown format: [text](url)
+                import re
+                match = re.match(r'\[(.*?)\]\((.*?)\)', val)
+                if match:
+                    text, url = match.groups()
+                    val = f'<a href="{url}" target="_blank">{safe_html(text)}</a>'
+            else:
+                val = safe_html(val) if val is not None else ""
+            cells.append(f"<td>{val}</td>")
+        html_rows.append("<tr>" + "".join(cells) + "</tr>")
+
+    table_html = f"""
+    <table border="1" style="border-collapse:collapse; width: 100%;">
+        {''.join(html_rows)}
+    </table>
+    """
+    return table_html
+
+
+# Then, render this in Streamlit:
 st.markdown(
-    filtered_df.sort_values(by="signatures", ascending=False)
-    .reset_index(drop=True)
-    .to_markdown(index=False),
+    df_to_html_table(
+        filtered_df.sort_values(by="signatures", ascending=False).reset_index(drop=True)
+    ),
     unsafe_allow_html=True
 )
