@@ -101,19 +101,16 @@ filtered_df = df.copy()
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    state_filter = st.multiselect(
-        "State:",
-        options=["All"] + sorted(filtered_df['State'].dropna().unique().tolist()),
-        default=["All"]
-    )
+    # Get list of unique states, sorted
+    state_options = sorted(filtered_df['State'].dropna().unique().tolist())
+    # Multiselect with all options selected by default
+    state_filter = st.multiselect("State:", options=state_options, default=state_options)
 with col2:
     department_filter = st.selectbox("Department:", ["All"] + sorted(filtered_df['Department'].dropna().unique().tolist()))
 
 # Apply filters before determining total pages
-if state_filter == "All":
-    filtered_data = filtered_df  # no filtering
-else:
-    filtered_data = filtered_df[filtered_df["State"] == state_filter]
+if state_filter:
+    filtered_df = filtered_df[filtered_df["State"].isin(state_filter)]
 
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["Department"] == department_filter]
