@@ -113,7 +113,7 @@ date_columns = [
 # Convert date columns to datetime
 for col in date_columns:
     if col in paged_df.columns:
-        paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce')
+        paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.normalize()
 
 # Convert Signatures to int
 paged_df["Signatures"] = pd.to_numeric(paged_df["Signatures"], errors='coerce').fillna(0).astype(int)
