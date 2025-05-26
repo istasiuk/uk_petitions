@@ -183,10 +183,24 @@ signatures_col_index = df_display.columns.get_loc("Signatures") + 1
 
 css = f"""
 <style>
+    div.dataframe-wrapper {{
+        max-height: 600px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+    }}
     table {{
         width: 100%;
         border-collapse: collapse;
         table-layout: fixed;
+    }}
+    thead th {{
+        position: sticky;
+        top: 0;
+        background: #f9f9f9;
+        z-index: 2;
+        text-align: left !important;
+        padding: 6px 8px;
+        border: 1px solid #ddd;
     }}
     table th, table td {{
         text-align: left !important;
@@ -211,12 +225,14 @@ css = f"""
 </style>
 """
 
+
 st.markdown(
     f"""
-    <div style="overflow-x:auto;">
+    <div class="dataframe-wrapper">
         {html_table}
     </div>
     {css}
     """,
     unsafe_allow_html=True
 )
+
