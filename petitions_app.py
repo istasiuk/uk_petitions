@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# Set wide layout to allow columns side-by-side
+# Set wide layout
 st.set_page_config(layout="wide")
 
 @st.cache_data(show_spinner=True)
@@ -54,10 +54,10 @@ def fetch_petitions():
     df = pd.DataFrame(all_rows)
     return df
 
-# Add Title
-st.title("UK Parliament Petitions Viewer")
+# UI
+st.title("📜 UK Parliament Petitions Viewer")
 
-# Add Refresh Data button
+# Refresh Button
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
     st.rerun()
@@ -67,46 +67,37 @@ with st.spinner("Fetching petitions..."):
 
 st.success(f"{len(df)} petitions fetched")
 
-# Number of items per page for manual pagination controls (not used here since AgGrid has built-in pagination)
-ITEMS_PER_PAGE = 50
-
-filtered_df = df.copy()
-
-# Filters in one row using columns
+# Filters
 col1, col2 = st.columns(2)
 
 with col1:
-    state_filter = st.selectbox("Select State:", ["All"] + sorted(filtered_df['State'].dropna().unique().tolist()))
+    state_filter = st.selectbox("Select State:", ["All"] + sorted(df['State'].dropna().unique().tolist()))
 with col2:
-    department_filter = st.selectbox("Select Department:", ["All"] + sorted(filtered_df['Department'].dropna().unique().tolist()))
+    department_filter = st.selectbox("Select Department:", ["All"] + sorted(df['Department'].dropna().unique().tolist()))
 
 # Apply filters
+filtered_df = df.copy()
 if state_filter != "All":
     filtered_df = filtered_df[filtered_df["State"] == state_filter]
-
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["Department"] == department_filter]
 
 # Format dates
 date_columns = [
-    "Created at",
-    "Opened at",
-    "Closed at",
+    "Created at", "Opened at", "Closed at",
     "Response threshold (10,000) reached at",
     "Government response at",
     "Debate threshold (100,000) reached at",
-    "Scheduled debate date",
-    "Debate outcome at",
+    "Scheduled debate date", "Debate outcome at",
 ]
-
 for col in date_columns:
     if col in filtered_df.columns:
         filtered_df[col] = pd.to_datetime(filtered_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
-# Format signatures with commas
+# Format numbers
 filtered_df["Signatures"] = filtered_df["Signatures"].map("{:,}".format)
 
-# Prepare clickable URLs in a new column for AgGrid cellRenderer
+# Create HTML links
 def make_link(url):
     if url:
         return f'<a href="{url}" target="_blank" rel="noopener noreferrer">Link</a>'
@@ -115,46 +106,48 @@ def make_link(url):
 filtered_df["Petition Link"] = filtered_df["Petition URL"].apply(make_link)
 filtered_df["Debate Video"] = filtered_df["Debate video URL"].apply(make_link)
 
-# Drop original URL columns from display if you want (optional)
+# Drop raw URL columns
 filtered_df = filtered_df.drop(columns=["Petition URL", "Debate video URL"])
 
-# Rearrange columns for better UX
-cols_order = [
-    "Petition", "Petition Link", "State", "Signatures", "Created at", "Opened at", "Closed at",
-    "Response threshold (10,000) reached at", "Government response at", "Debate threshold (100,000) reached at",
-    "Scheduled debate date", "Debate outcome at", "Response", "Debate Video", "Department"
+# Column order
+column_order = [
+    "Petition", "Petition Link", "State", "Signatures",
+    "Created at", "Opened at", "Closed at",
+    "Response threshold (10,000) reached at",
+    "Government response at", "Debate threshold (100,000) reached at",
+    "Scheduled debate date", "Debate outcome at",
+    "Response", "Debate Video", "Department"
 ]
-filtered_df = filtered_df[cols_order]
+filtered_df = filtered_df[column_order]
 
-# Build AgGrid options
+# AgGrid config
 gb = GridOptionsBuilder.from_dataframe(filtered_df)
+gb.configure_default_column(wrapText=True, autoHeight=True)
 
-# Freeze (pin) the first column ("Petition")
-gb.configure_column("Petition", pinned="left", editable=False, filter=True, sortable=True, wrapText=True, autoHeight=True)
+# Pin first column
+gb.configure_column("Petition", pinned="left", editable=False, filter=True, sortable=True)
 
-# Make "Petition Link" and "Debate Video" render HTML links
-gb.configure_column("Petition Link", cellRenderer='agGroupCellRenderer', editable=False, filter=False, sortable=False)
-gb.configure_column("Debate Video", cellRenderer='agGroupCellRenderer', editable=False, filter=False, sortable=False)
+# HTML links
+gb.configure_column("Petition Link", type=["htmlColumn"])
+gb.configure_column("Debate Video", type=["htmlColumn"])
 
-# Set other columns non-editable, enable filtering & sorting
+# Other columns
 for col in filtered_df.columns:
     if col not in ["Petition", "Petition Link", "Debate Video"]:
-        gb.configure_column(col, editable=False, filter=True, sortable=True, wrapText=True, autoHeight=True)
+        gb.configure_column(col, editable=False, filter=True, sortable=True)
 
-# Enable pagination
+# Pagination
 gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=50)
 
+# Render grid
 grid_options = gb.build()
-
-# Display the table
 AgGrid(
     filtered_df,
     gridOptions=grid_options,
     enable_enterprise_modules=False,
-    allow_unsafe_jscode=True,
-    theme="material",  # optional: material, balham, alpine, dark
+    allow_unsafe_jscode=False,
+    theme="material",
     height=600,
     fit_columns_on_grid_load=True,
     reload_data=False,
 )
-
