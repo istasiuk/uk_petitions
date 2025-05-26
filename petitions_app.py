@@ -62,17 +62,16 @@ def add_tooltip(text, max_len=50):
     return f'<span title="{escaped_text}">{short_text}</span>'
 
 def avg_days_between(df, start_col, end_col):
-    if start_col not in df.columns or end_col not in df.columns:
+    # Convert columns to datetime (if not already done)
+    start_dates = pd.to_datetime(df[start_col], errors='coerce')
+    end_dates = pd.to_datetime(df[end_col], errors='coerce')
+
+    # Calculate the difference in days, drop NaT
+    diffs = (end_dates - start_dates).dt.days.dropna()
+
+    if len(diffs) == 0:
         return None
-    start_dates = df[start_col]
-    end_dates = df[end_col]
-    # Drop NA before subtraction
-    valid = start_dates.notna() & end_dates.notna()
-    if valid.sum() == 0:
-        return None
-    diffs = end_dates[valid] - start_dates[valid]
-    # diffs are Timedelta objects; convert to days float
-    return diffs.dt.days.mean()
+    return round(diffs.mean(), 1)
 
 # Add Title
 st.title("UK Parliament Petitions Viewer")
@@ -107,6 +106,39 @@ if state_filter != "All":
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["Department"] == department_filter]
 
+total_items = len(filtered_df)
+total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
+
+with col3:
+    page = st.selectbox(
+        "Select page:",
+        options=list(range(1, total_pages + 1)),
+        index=0  # default to first page
+    )
+
+# Calculate averages on filtered data
+avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
+avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at", "Response threshold (10,000) reached at")
+avg_response_threshold_to_response = avg_days_between(filtered_df, "Response threshold (10,000) reached at", "Government response at")
+avg_opened_to_debate_threshold = avg_days_between(filtered_df, "Opened at", "Debate threshold (100,000) reached at")
+avg_debate_threshold_to_scheduled = avg_days_between(filtered_df, "Debate threshold (100,000) reached at", "Scheduled debate date")
+avg_scheduled_to_outcome = avg_days_between(filtered_df, "Scheduled debate date", "Debate outcome at")
+
+# Show big numbers metrics above the table
+col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+col1.metric("Avg Created → Opened (days)", avg_created_to_opened if avg_created_to_opened is not None else "N/A")
+col2.metric("Avg Opened → Resp Threshold (days)", avg_opened_to_response_threshold if avg_opened_to_response_threshold is not None else "N/A")
+col3.metric("Avg Resp Threshold → Response (days)", avg_response_threshold_to_response if avg_response_threshold_to_response is not None else "N/A")
+col4.metric("Avg Opened → Debate Threshold (days)", avg_opened_to_debate_threshold if avg_opened_to_debate_threshold is not None else "N/A")
+col5.metric("Avg Debate Threshold → Scheduled (days)", avg_debate_threshold_to_scheduled if avg_debate_threshold_to_scheduled is not None else "N/A")
+col6.metric("Avg Scheduled → Outcome (days)", avg_scheduled_to_outcome if avg_scheduled_to_outcome is not None else "N/A")
+
+start_idx = (page - 1) * ITEMS_PER_PAGE
+end_idx = start_idx + ITEMS_PER_PAGE
+
+paged_df = filtered_df.iloc[start_idx:end_idx]
+
 date_columns = [
     "Created at",
     "Opened at",
@@ -118,50 +150,9 @@ date_columns = [
     "Debate outcome at",
 ]
 
-# Convert filtered_df date columns to datetime (needed for arithmetic)
-for col in date_columns:
-    if col in filtered_df.columns:
-        filtered_df[col] = pd.to_datetime(filtered_df[col], errors='coerce')
-
-# Calculate summary metrics
-total_petitions = len(filtered_df)
-
-avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
-avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at", "Response threshold (10,000) reached at")
-avg_response_threshold_to_response = avg_days_between(filtered_df, "Response threshold (10,000) reached at", "Government response at")
-avg_opened_to_debate_threshold = avg_days_between(filtered_df, "Opened at", "Debate threshold (100,000) reached at")
-avg_debate_threshold_to_scheduled = avg_days_between(filtered_df, "Debate threshold (100,000) reached at", "Scheduled debate date")
-avg_scheduled_to_outcome = avg_days_between(filtered_df, "Scheduled debate date", "Debate outcome at")
-
-total_items = total_petitions
-total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
-
-with col3:
-    page = st.selectbox(
-        "Select page:",
-        options=list(range(1, total_pages + 1)),
-        index=0  # default to first page
-    )
-
-# Display summary in one row with columns
-summary_cols = st.columns(7)
-summary_cols[0].metric("Total petitions", f"{total_petitions:,}")
-summary_cols[1].metric("Avg days Created→Opened", f"{avg_created_to_opened:.1f}" if avg_created_to_opened is not None else "N/A")
-summary_cols[2].metric("Avg days Opened→Response threshold", f"{avg_opened_to_response_threshold:.1f}" if avg_opened_to_response_threshold is not None else "N/A")
-summary_cols[3].metric("Avg days Response threshold→Response", f"{avg_response_threshold_to_response:.1f}" if avg_response_threshold_to_response is not None else "N/A")
-summary_cols[4].metric("Avg days Opened→Debate threshold", f"{avg_opened_to_debate_threshold:.1f}" if avg_opened_to_debate_threshold is not None else "N/A")
-summary_cols[5].metric("Avg days Debate threshold→Scheduled debate", f"{avg_debate_threshold_to_scheduled:.1f}" if avg_debate_threshold_to_scheduled is not None else "N/A")
-summary_cols[6].metric("Avg days Scheduled debate→Outcome", f"{avg_scheduled_to_outcome:.1f}" if avg_scheduled_to_outcome is not None else "N/A")
-
-start_idx = (page - 1) * ITEMS_PER_PAGE
-end_idx = start_idx + ITEMS_PER_PAGE
-
-paged_df = filtered_df.iloc[start_idx:end_idx].copy()
-
-# Format date columns in paged_df for display only
 for col in date_columns:
     if col in paged_df.columns:
-        paged_df[col] = paged_df[col].dt.strftime('%d/%m/%Y')
+        paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
 st.write(f"Showing page {page} of {total_pages}")
 
