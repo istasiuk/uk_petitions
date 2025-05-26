@@ -60,7 +60,7 @@ st.title("UK Parliament Petitions Viewer")
 # Add Refresh Data button
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
-    st.experimental_rerun()
+    st.rerun()
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
@@ -102,6 +102,7 @@ end_idx = start_idx + ITEMS_PER_PAGE
 
 paged_df = filtered_df.iloc[start_idx:end_idx].copy()
 
+# Date columns list
 date_columns = [
     "Created at",
     "Opened at",
@@ -113,17 +114,30 @@ date_columns = [
     "Debate outcome at",
 ]
 
+# Convert date columns to datetime (keep as datetime for sorting)
 for col in date_columns:
     if col in paged_df.columns:
-        paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
+        paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce')
 
-# Format Signatures column with commas
-paged_df["Signatures"] = paged_df["Signatures"].map("{:,}".format)
+# Convert Signatures to int (for sorting)
+paged_df["Signatures"] = pd.to_numeric(paged_df["Signatures"], errors='coerce').fillna(0).astype(int)
 
-# Replace NaN or None with empty string for clean display
-paged_df = paged_df.fillna("")
+# Replace NaN or None with empty string for non-date/non-numeric columns to avoid showing "NaT" or NaN
+for col in paged_df.columns:
+    if col not in date_columns + ["Signatures", "Petition"]:
+        paged_df[col] = paged_df[col].fillna("")
 
 st.write(f"Showing page {page} of {total_pages}")
+
+# AG Grid JS formatter for date columns (UK format dd/mm/yyyy)
+date_js_formatter = """
+function(params) {
+    if (!params.value) return '';
+    let date = new Date(params.value);
+    if (isNaN(date)) return '';
+    return date.toLocaleDateString('en-GB');
+}
+"""
 
 # Configure AG Grid options
 gb = GridOptionsBuilder.from_dataframe(paged_df)
@@ -139,6 +153,22 @@ gb.configure_column("Petition", pinned='left', width=300)
 
 # Enable tooltip on Response column for full text on hover
 gb.configure_column("Response", tooltipField="Response", autoHeight=True)
+
+# Configure date columns with date filter and JS formatter
+for col in date_columns:
+    if col in paged_df.columns:
+        gb.configure_column(
+            col,
+            type=["dateColumnFilter"],
+            valueFormatter=date_js_formatter,
+        )
+
+# Configure Signatures column as numeric with comma formatting
+gb.configure_column(
+    "Signatures",
+    type=["numericColumn"],
+    valueFormatter="(params.value != null) ? params.value.toLocaleString() : ''",
+)
 
 grid_options = gb.build()
 
