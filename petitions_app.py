@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import streamlit as st
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 @st.cache_data(show_spinner=True)
 def fetch_petitions():
@@ -89,4 +90,32 @@ end_idx = start_idx + page_size
 
 paged_df = filtered_df.iloc[start_idx:end_idx]
 
-st.dataframe(paged_df, use_container_width=True)
+# AgGrid configuration
+gb = GridOptionsBuilder.from_dataframe(paged_df)
+
+# JavaScript code for rendering clickable link in 'name' column
+link_renderer = JsCode('''
+    function(params) {
+        if (params.data.name_url) {
+            return `<a href="${params.data.name_url}" target="_blank" style="color:#1a73e8;">${params.data.name_text}</a>`;
+        } else {
+            return params.data.name_text;
+        }
+    }
+''')
+
+# Configure the 'name' column to use custom cell renderer
+gb.configure_column("name_text", header_name="Name", cellRenderer=link_renderer, autoHeight=True, wrapText=True)
+# Hide the raw URL column from view
+gb.configure_column("name_url", hide=True)
+
+grid_options = gb.build()
+
+AgGrid(
+    paged_df,
+    gridOptions=grid_options,
+    enable_enterprise_modules=False,
+    allow_unsafe_jscode=True,
+    height=600,
+    fit_columns_on_grid_load=True,
+)
