@@ -125,18 +125,6 @@ for col in paged_df.columns:
 
 st.write(f"Showing page {page} of {total_pages}")
 
-# JS formatter for UK date format
-date_js_formatter = """
-function(params) {
-    if (!params.value) return '';
-    // Strip microseconds and timezone if present
-    let isoDate = params.value.toString().split('.')[0];
-    let date = new Date(isoDate);
-    if (isNaN(date.getTime())) return '';
-    return date.toLocaleDateString('en-GB');
-}
-"""
-
 # AG Grid setup
 gb = GridOptionsBuilder.from_dataframe(paged_df)
 
@@ -150,16 +138,6 @@ gb.configure_column("Response", tooltipField="Response", autoHeight=True)
 
 # Debate video as HTML link
 gb.configure_column("Debate video", width=100, cellRenderer='html')
-
-# Format all date columns with UK format and date filter
-for col in date_columns:
-    if col in paged_df.columns:
-        gb.configure_column(
-            col,
-            type=["dateColumnFilter"],
-            valueFormatter=date_js_formatter,
-            js_code=True
-        )
 
 # Format Signatures with comma separator
 gb.configure_column(
