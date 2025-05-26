@@ -58,7 +58,7 @@ st.title("📋 UK Parliament Petitions Viewer")
 # Add Refresh Data button
 if st.button("🔄 Refresh Data"):
     fetch_petitions.clear()
-    st.experimental_rerun()  # refresh the page after clearing cache
+    st.rerun()  # refresh the page after clearing cache
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
