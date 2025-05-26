@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 import streamlit as st
-from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+import math
 
 @st.cache_data(show_spinner=True)
 def fetch_petitions():
@@ -76,54 +76,24 @@ if state_filter != "All":
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["department"] == department_filter]
 
-# Sort and reset index first
-filtered_df = filtered_df.sort_values(by="signatures", ascending=False).reset_index(drop=True)
+# Number of items per page
+ITEMS_PER_PAGE = 20
 
-# Pagination
-page_size = 50
-total_pages = (len(filtered_df) - 1) // page_size + 1
+# After filtering your DataFrame `filtered_df`
+total_items = len(filtered_df)
+total_pages = math.ceil(total_items / ITEMS_PER_PAGE)
 
-page_number = st.number_input("Page number", min_value=1, max_value=total_pages, value=1)
+# Page selector (slider or number input)
+page = st.number_input("Page", min_value=1, max_value=total_pages, value=1, step=1)
 
-start_idx = (page_number - 1) * page_size
-end_idx = start_idx + page_size
+# Calculate start and end index of the current page
+start_idx = (page - 1) * ITEMS_PER_PAGE
+end_idx = start_idx + ITEMS_PER_PAGE
 
+# Slice the DataFrame to the current page
 paged_df = filtered_df.iloc[start_idx:end_idx]
 
-# AgGrid configuration
-gb = GridOptionsBuilder.from_dataframe(paged_df)
+st.write(f"Showing page {page} of {total_pages} ({total_items} petitions total)")
 
-# JavaScript code for rendering clickable link in 'name' column
-link_renderer = JsCode('''
-function(params) {
-    const mdLink = params.value || "";
-    const match = mdLink.match(/\\[(.*?)\\]\\((.*?)\\)/);
-    if (match) {
-        const text = match[1];
-        const url = match[2];
-        return `<a href="${url}" target="_blank" style="color:#1a73e8;">${text}</a>`;
-    } else {
-        return mdLink;
-    }
-}
-''')
-
-# Configure the 'name' column 
-gb.configure_column(
-    "name",
-    header_name="petition",
-    cellRenderer=link_renderer,
-    autoHeight=True,
-    wrapText=True
-)
-
-grid_options = gb.build()
-
-AgGrid(
-    paged_df,
-    gridOptions=grid_options,
-    enable_enterprise_modules=False,
-    allow_unsafe_jscode=True,
-    height=600,
-    fit_columns_on_grid_load=True,
-)
+# Show the paginated DataFrame
+st.dataframe(paged_df.sort_values(by="signatures", ascending=False).reset_index(drop=True))
