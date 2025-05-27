@@ -155,13 +155,10 @@ col4.metric("Avg Opened → Debate Threshold (days)", avg_opened_to_debate_thres
 col5.metric("Avg Debate Threshold → Scheduled (days)", avg_debate_threshold_to_scheduled if avg_debate_threshold_to_scheduled is not None else "N/A")
 col6.metric("Avg Scheduled → Outcome (days)", avg_scheduled_to_outcome if avg_scheduled_to_outcome is not None else "N/A")
 
-# Sort before pagination
-sorted_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
-
-# Then paginate
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
-paged_df = sorted_df.iloc[start_idx:end_idx]
+
+paged_df = filtered_df.iloc[start_idx:end_idx]
 
 date_columns = [
     "Created at",
@@ -181,7 +178,7 @@ for col in date_columns:
 st.write(f"Showing page {page} of {total_pages} ({total_items} petitions total)")
 
 # Sort and reset index as before
-df_display = paged_df.copy()
+df_display = paged_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
 df_display.index.name = None
 
 # Format Signatures column
