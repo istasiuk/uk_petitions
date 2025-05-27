@@ -126,10 +126,9 @@ with col3:
     )
 
 # Sorting
-col4, col5 = st.columns([2, 1])
-with col4:
+with st.sidebar:
+    st.subheader("Sort Options")
     sort_column = st.selectbox("Sort by column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
-with col5:
     sort_ascending = st.radio("Sort order:", options=["Descending", "Ascending"]) == "Descending"
 
 # Calculate averages on filtered data
@@ -149,9 +148,6 @@ col3.metric("Avg Resp Threshold → Response (days)", avg_response_threshold_to_
 col4.metric("Avg Opened → Debate Threshold (days)", avg_opened_to_debate_threshold if avg_opened_to_debate_threshold is not None else "N/A")
 col5.metric("Avg Debate Threshold → Scheduled (days)", avg_debate_threshold_to_scheduled if avg_debate_threshold_to_scheduled is not None else "N/A")
 col6.metric("Avg Scheduled → Outcome (days)", avg_scheduled_to_outcome if avg_scheduled_to_outcome is not None else "N/A")
-
-# Apply sort to full filtered data
-filtered_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending)
 
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
@@ -175,7 +171,7 @@ for col in date_columns:
 st.write(f"Showing page {page} of {total_pages} ({total_items} petitions total)")
 
 # Sort and reset index as before
-df_display = paged_df.sort_values(by="Signatures", ascending=False).reset_index(drop=True)
+df_display = paged_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
 df_display.index.name = None
 
 # Format Signatures column
