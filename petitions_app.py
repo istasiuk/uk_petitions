@@ -92,79 +92,49 @@ with st.spinner("Fetching petitions..."):
 
 st.success(f"{len(df)} petitions")
 
+# Number of items per page
+ITEMS_PER_PAGE = 50
+
 filtered_df = df.copy()
 
-# Sorting
+# Sidebar
 with st.sidebar:
-    # Filtering
-    st.subheader("Filters")
-
-    state_options = sorted(filtered_df['State'].dropna().unique().tolist())
-    state_filter = st.multiselect("State", options=state_options, default=[])
-
-    department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
-    department_filter = st.multiselect("Department", options=department_options, default=[])
-
     # Sorting
     st.subheader("Sort Options")
 
     sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
     sort_ascending = st.radio("Order:", options=["Descending", "Ascending"]) == "Descending"
 
+# Filters and page selector in one row using columns
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    state_options = sorted(filtered_df['State'].dropna().unique().tolist())
+    state_filter = st.multiselect("State:", options=state_options, default=[])
+
+with col2:
+    department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
+    department_filter = st.selectbox("Department:", ["All"] + department_options)
+
 # Apply filters
-effective_state_filter = state_filter if state_filter else state_options
-filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
+if state_filter:
+    filtered_df = filtered_df[filtered_df["State"].isin(state_filter)]
+else:
+    # If nothing selected, either show empty or all data — your choice
+    filtered_df = filtered_df  # shows all rows (no filter)
 
-effective_department_filter = department_filter if department_filter else department_options
-filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_filter)]
+if department_filter != "All":
+    filtered_df = filtered_df[filtered_df["Department"] == department_filter]
 
-# Constants
-ITEMS_PER_PAGE = 10
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
-# Initialize page state
-if "page" not in st.session_state:
-    st.session_state.page = 1
-
-# # Pagination controls (above the table)
-# with st.container():
-#     col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
-#
-#     with col1:
-#         if st.button("First"):
-#             st.session_state.page = 1
-#
-#     with col2:
-#         if st.button("Previous"):
-#             if st.session_state.page > 1:
-#                 st.session_state.page -= 1
-#
-#     with col3:
-#         # Manual page input
-#         page_input = st.text_input(
-#             "Page:",
-#             value=str(st.session_state.page),
-#             key="page_input"
-#         )
-#         # Validate input and update current page
-#         try:
-#             input_page = int(page_input)
-#             if 1 <= input_page <= total_pages:
-#                 st.session_state.page = input_page
-#             else:
-#                 st.warning(f"Page number must be between 1 and {total_pages}")
-#         except ValueError:
-#             st.warning("Please enter a valid integer page number")
-#
-#     with col4:
-#         if st.button("Next"):
-#             if st.session_state.page < total_pages:
-#                 st.session_state.page += 1
-#
-#     with col5:
-#         if st.button("Last"):
-#             st.session_state.page = total_pages
+with col3:
+    page = st.selectbox(
+        "Page:",
+        options=list(range(1, total_pages + 1)),
+        index=0  # default to first page
+    )
 
 # Calculate averages on filtered data
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
@@ -184,9 +154,9 @@ col4.metric("Avg Opened → Debate Threshold (days)", avg_opened_to_debate_thres
 col5.metric("Avg Debate Threshold → Scheduled (days)", avg_debate_threshold_to_scheduled if avg_debate_threshold_to_scheduled is not None else "N/A")
 col6.metric("Avg Scheduled → Outcome (days)", avg_scheduled_to_outcome if avg_scheduled_to_outcome is not None else "N/A")
 
-page = st.session_state.page
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
+
 paged_df = filtered_df.iloc[start_idx:end_idx]
 
 date_columns = [
@@ -281,4 +251,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
