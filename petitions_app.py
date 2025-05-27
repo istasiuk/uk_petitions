@@ -125,6 +125,13 @@ with col3:
         index=0  # default to first page
     )
 
+# Sorting
+col4, col5 = st.columns([2, 1])
+with col4:
+    sort_column = st.selectbox("Sort by column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
+with col5:
+    sort_ascending = st.radio("Sort order:", options=["Descending", "Ascending"]) == "Descending"
+
 # Calculate averages on filtered data
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
 avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at", "Response threshold (10,000) reached at")
@@ -143,9 +150,11 @@ col4.metric("Avg Opened → Debate Threshold (days)", avg_opened_to_debate_thres
 col5.metric("Avg Debate Threshold → Scheduled (days)", avg_debate_threshold_to_scheduled if avg_debate_threshold_to_scheduled is not None else "N/A")
 col6.metric("Avg Scheduled → Outcome (days)", avg_scheduled_to_outcome if avg_scheduled_to_outcome is not None else "N/A")
 
+# Apply sort to full filtered data
+filtered_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending)
+
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
-
 paged_df = filtered_df.iloc[start_idx:end_idx]
 
 date_columns = [
