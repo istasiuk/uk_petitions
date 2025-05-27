@@ -105,11 +105,11 @@ with st.sidebar:
     department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
-    # # Sorting
-    # st.subheader("Sort Options")
-    #
-    # sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
-    # sort_ascending = st.radio("Order:", options=["Descending", "Ascending"]) == "Descending"
+    # Sorting
+    st.subheader("Sort Options")
+
+    sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
+    sort_ascending = st.radio("Order:", options=["Descending", "Ascending"]) == "Descending"
 
 # Apply filters
 effective_state_filter = state_filter if state_filter else state_options
@@ -123,48 +123,48 @@ ITEMS_PER_PAGE = 10
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
-# Initialize page state
-if "page" not in st.session_state:
-    st.session_state.page = 1
-
-# Pagination controls (above the table)
-with st.container():
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
-
-    with col1:
-        if st.button("First"):
-            st.session_state.page = 1
-
-    with col2:
-        if st.button("Previous"):
-            if st.session_state.page > 1:
-                st.session_state.page -= 1
-
-    with col3:
-        # Manual page input
-        page_input = st.text_input(
-            "Page:",
-            value=str(st.session_state.page),
-            key="page_input"
-        )
-        # Validate input and update current page
-        try:
-            input_page = int(page_input)
-            if 1 <= input_page <= total_pages:
-                st.session_state.page = input_page
-            else:
-                st.warning(f"Page number must be between 1 and {total_pages}")
-        except ValueError:
-            st.warning("Please enter a valid integer page number")
-
-    with col4:
-        if st.button("Next"):
-            if st.session_state.page < total_pages:
-                st.session_state.page += 1
-
-    with col5:
-        if st.button("Last"):
-            st.session_state.page = total_pages
+# # Initialize page state
+# if "page" not in st.session_state:
+#     st.session_state.page = 1
+#
+# # Pagination controls (above the table)
+# with st.container():
+#     col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+#
+#     with col1:
+#         if st.button("First"):
+#             st.session_state.page = 1
+#
+#     with col2:
+#         if st.button("Previous"):
+#             if st.session_state.page > 1:
+#                 st.session_state.page -= 1
+#
+#     with col3:
+#         # Manual page input
+#         page_input = st.text_input(
+#             "Page:",
+#             value=str(st.session_state.page),
+#             key="page_input"
+#         )
+#         # Validate input and update current page
+#         try:
+#             input_page = int(page_input)
+#             if 1 <= input_page <= total_pages:
+#                 st.session_state.page = input_page
+#             else:
+#                 st.warning(f"Page number must be between 1 and {total_pages}")
+#         except ValueError:
+#             st.warning("Please enter a valid integer page number")
+#
+#     with col4:
+#         if st.button("Next"):
+#             if st.session_state.page < total_pages:
+#                 st.session_state.page += 1
+#
+#     with col5:
+#         if st.button("Last"):
+#             st.session_state.page = total_pages
 
 # Calculate averages on filtered data
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
@@ -207,7 +207,7 @@ for col in date_columns:
 st.write(f"Showing page {page} of {total_pages} ({total_items} petitions total)")
 
 # Sort and reset index as before
-df_display = paged_df.sort_values(by='Signatures', ascending=False).reset_index(drop=True)
+df_display = paged_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
 df_display.index.name = None
 
 # Format Signatures column
