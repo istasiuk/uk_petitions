@@ -2,64 +2,56 @@ import requests
 import pandas as pd
 import streamlit as st
 import math
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Set wide layout to allow columns side-by-side
 st.set_page_config(layout="wide")
 
 @st.cache_data(show_spinner=True)
 def fetch_petitions():
-    base_url = "https://petition.parliament.uk/petitions.json?page={}&state=all"
+    all_rows = []
+    page = 1
 
-    # First request to determine total pages
-    first_response = requests.get(base_url.format(1))
-    if first_response.status_code != 200:
-        return pd.DataFrame()
+    while True:
+        url = f"https://petition.parliament.uk/petitions.json?page={page}&state=all"
+        response = requests.get(url)
+        if response.status_code != 200:
+            break
 
-    first_data = first_response.json()
-    total_pages = first_data.get("links", {}).get("last", "").split("page=")[-1]
-    total_pages = int(total_pages) if total_pages.isdigit() else 1
+        data = response.json()
+        petitions = data.get("data", [])
 
-    def fetch_page(page):
-        try:
-            url = base_url.format(page)
-            res = requests.get(url)
-            if res.status_code != 200:
-                return []
-            return res.json().get("data", [])
-        except Exception:
-            return []
+        for petition in petitions:
+            attrs = petition.get("attributes", {})
+            links = petition.get("links", {})
+            response_data = attrs.get("government_response") or {}
+            debate = attrs.get("debate") or {}
+            departments = attrs.get("departments", [])
 
-    all_petitions = []
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [executor.submit(fetch_page, page) for page in range(1, total_pages + 1)]
-        for future in as_completed(futures):
-            petitions = future.result()
-            for petition in petitions:
-                attrs = petition.get("attributes", {})
-                links = petition.get("links", {})
-                response_data = attrs.get("government_response") or {}
-                debate = attrs.get("debate") or {}
-                departments = attrs.get("departments", [])
+            all_rows.append({
+                "Petition": f'<a href="{links.get("self").replace(".json", "")}" target="_blank">{attrs.get("action")}</a>' if links.get("self") else attrs.get("action"),
+                "State": attrs.get("state"),
+                "Signatures": attrs.get("signature_count"),
+                "Created at": attrs.get("created_at"),
+                "Opened at": attrs.get("opened_at"),
+                "Closed at": attrs.get("closed_at"),
+                "Response threshold (10,000) reached at": attrs.get("response_threshold_reached_at"),
+                "Government response at": attrs.get("government_response_at"),
+                "Debate threshold (100,000) reached at": attrs.get("debate_threshold_reached_at"),
+                "Scheduled debate date": attrs.get("scheduled_debate_date"),
+                "Debate outcome at": attrs.get("debate_outcome_at"),
+                "Response": response_data.get("summary"),
+                "Debate video": f'<a href="{debate.get("video_url")}" target="_blank">Video</a>' if debate.get("video_url") else "",
+                "Department": departments[0].get("name") if departments else None
+            })
 
-                all_petitions.append({
-                    "Petition": f'<a href="{links.get("self").replace(".json", "")}" target="_blank">{attrs.get("action")}</a>' if links.get("self") else attrs.get("action"),
-                    "State": attrs.get("state"),
-                    "Signatures": attrs.get("signature_count"),
-                    "Created at": attrs.get("created_at"),
-                    "Opened at": attrs.get("opened_at"),
-                    "Closed at": attrs.get("closed_at"),
-                    "Response threshold (10,000) reached at": attrs.get("response_threshold_reached_at"),
-                    "Government response at": attrs.get("government_response_at"),
-                    "Debate threshold (100,000) reached at": attrs.get("debate_threshold_reached_at"),
-                    "Scheduled debate date": attrs.get("scheduled_debate_date"),
-                    "Debate outcome at": attrs.get("debate_outcome_at"),
-                    "Response": response_data.get("summary"),
-                    "Debate video": f'<a href="{debate.get("video_url")}" target="_blank">Video</a>' if debate.get("video_url") else "",
-                    "Department": departments[0].get("name") if departments else None
-                })
+        next_link = data.get("links", {}).get("next")
+        if not next_link:
+            break
 
-    return pd.DataFrame(all_petitions)
+        page += 1
+
+    df = pd.DataFrame(all_rows)
+    return df
 
 def add_tooltip(text, max_len=50):
     if not text:
