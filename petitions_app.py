@@ -184,6 +184,7 @@ col4.metric("Avg Opened → Debate Threshold (days)", avg_opened_to_debate_thres
 col5.metric("Avg Debate Threshold → Scheduled (days)", avg_debate_threshold_to_scheduled if avg_debate_threshold_to_scheduled is not None else "N/A")
 col6.metric("Avg Scheduled → Outcome (days)", avg_scheduled_to_outcome if avg_scheduled_to_outcome is not None else "N/A")
 
+page = st.session_state.page
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
 paged_df = filtered_df.iloc[start_idx:end_idx]
