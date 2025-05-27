@@ -99,37 +99,35 @@ filtered_df = df.copy()
 
 # Sidebar
 with st.sidebar:
+    # Filtering
+    st.subheader("Filters")
+
+    state_options = sorted(filtered_df['State'].dropna().unique().tolist())
+    state_filter = st.multiselect("State", options=state_options, default=[])
+
+    department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
+    department_filter = st.multiselect("Department", options=department_options, default=[])
+
     # Sorting
     st.subheader("Sort Options")
 
     sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
-    sort_ascending = st.radio("Order:", options=["Descending", "Ascending"]) == "Descending"
+    sort_ascending = st.radio("Order:", options=["Ascending", "Descending"]) == "Descending"
 
 # Filters and page selector in one row using columns
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    state_options = sorted(filtered_df['State'].dropna().unique().tolist())
-    state_filter = st.multiselect("State:", options=state_options, default=[])
-
-with col2:
-    department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
-    department_filter = st.selectbox("Department:", ["All"] + department_options)
+col1 = st.columns(1)
 
 # Apply filters
-if state_filter:
-    filtered_df = filtered_df[filtered_df["State"].isin(state_filter)]
-else:
-    # If nothing selected, either show empty or all data — your choice
-    filtered_df = filtered_df  # shows all rows (no filter)
+effective_state_filter = state_filter if state_filter else state_options
+filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
 
-if department_filter != "All":
-    filtered_df = filtered_df[filtered_df["Department"] == department_filter]
+effective_department_filter = department_filter if department_filter else department_options
+filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_filter)]
 
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
-with col3:
+with col1:
     page = st.selectbox(
         "Page:",
         options=list(range(1, total_pages + 1)),
