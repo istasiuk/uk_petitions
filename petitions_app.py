@@ -106,14 +106,14 @@ with col1:
 
 with col2:
     department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
-    department_filter = st.selectbox("Department:", ["All"] + department_options)
+    department_filter = st.multiselect("Department:", options=department_options, default=[])
 
 # Apply filters
 effective_state_filter = state_filter if state_filter else state_options
 filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
 
-if department_filter != "All":
-    filtered_df = filtered_df[filtered_df["Department"] == department_filter]
+effective_department_filter = department_filter if department_filter else department_options
+filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_filter)]
 
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
