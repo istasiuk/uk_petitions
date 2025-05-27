@@ -97,16 +97,28 @@ ITEMS_PER_PAGE = 50
 
 filtered_df = df.copy()
 
-# Filters and page selector in one row using columns
-col1, col2, col3 = st.columns(3)
+# Sorting
+with st.sidebar:
+    # Filtering
+    st.subheader("Filters")
 
-with col1:
     state_options = sorted(filtered_df['State'].dropna().unique().tolist())
-    state_filter = st.multiselect("State:", options=state_options, default=[])
+    state_filter = st.multiselect("State", options=state_options, default=[])
 
-with col2:
     department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
-    department_filter = st.multiselect("Department:", options=department_options, default=[])
+    department_filter = st.multiselect("Department", options=department_options, default=[])
+
+    page = st.selectbox(
+        "Page",
+        options=list(range(1, total_pages + 1)),
+        index=0
+    )
+
+    # Sorting
+    st.subheader("Sort Options")
+
+    sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
+    sort_ascending = st.radio("Order:", options=["Descending", "Ascending"]) == "Descending"
 
 # Apply filters
 effective_state_filter = state_filter if state_filter else state_options
@@ -117,19 +129,6 @@ filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_fi
 
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
-
-with col3:
-    page = st.selectbox(
-        "Page:",
-        options=list(range(1, total_pages + 1)),
-        index=0  # default to first page
-    )
-
-# Sorting
-with st.sidebar:
-    st.subheader("Sort Options")
-    sort_column = st.selectbox("Sort by column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
-    sort_ascending = st.radio("Sort order:", options=["Descending", "Ascending"]) == "Descending"
 
 # Calculate averages on filtered data
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
