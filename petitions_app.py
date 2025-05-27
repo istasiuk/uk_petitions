@@ -109,11 +109,8 @@ with col2:
     department_filter = st.selectbox("Department:", ["All"] + department_options)
 
 # Apply filters
-if state_filter:
-    filtered_df = filtered_df[filtered_df["State"].isin(state_filter)]
-else:
-    # Treat no selection as all selected
-    filtered_df = filtered_df[filtered_df["State"].isin(state_options)]
+effective_state_filter = state_filter if state_filter else state_options
+filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
 
 if department_filter != "All":
     filtered_df = filtered_df[filtered_df["Department"] == department_filter]
