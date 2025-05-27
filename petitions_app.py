@@ -90,11 +90,6 @@ if st.button("⟳ Refresh Data"):
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
 
-st.success(f"{len(df)} petitions")
-
-# Number of items per page
-ITEMS_PER_PAGE = 50
-
 filtered_df = df.copy()
 
 # Sidebar
@@ -113,6 +108,11 @@ with st.sidebar:
 
     sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
     sort_ascending = st.radio("Order:", options=["Ascending", "Descending"]) == "Descending"
+
+st.success(f"{len(df)} petitions")
+
+# Number of items per page
+ITEMS_PER_PAGE = 50
 
 # Filters and page selector in one row using columns
 col1 = st.columns(1)
