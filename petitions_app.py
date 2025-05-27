@@ -100,9 +100,11 @@ with st.sidebar:
     st.subheader("Filters")
 
     state_options = sorted(filtered_df['State'].dropna().unique().tolist())
+    state_options.append("-- Empty --")
     state_filter = st.multiselect("State", options=state_options, default=[])
 
     department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
+    department_options.append("-- Empty --")
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
     # Sorting
@@ -112,11 +114,17 @@ with st.sidebar:
     sort_ascending = st.radio("Order:", options=["Descending", "Ascending"]) == "Descending"
 
 # Apply filters
-effective_state_filter = state_filter if state_filter else state_options
-filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
+if state_filter:
+    conditions = filtered_df["State"].isin([s for s in state_filter if s != "-- Empty --"])
+    if "-- Empty --" in state_filter:
+        conditions |= filtered_df["State"].isna()
+    filtered_df = filtered_df[conditions]
 
-effective_department_filter = department_filter if department_filter else department_options
-filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_filter)]
+if department_filter:
+    conditions = filtered_df["Department"].isin([d for d in department_filter if d != "-- Empty --"])
+    if "-- Empty --" in department_filter:
+        conditions |= filtered_df["Department"].isna()
+    filtered_df = filtered_df[conditions]
 
 # Constants
 ITEMS_PER_PAGE = 10
