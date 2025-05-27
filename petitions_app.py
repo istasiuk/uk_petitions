@@ -123,10 +123,10 @@ ITEMS_PER_PAGE = 10
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
-# # Initialize page state
-# if "page" not in st.session_state:
-#     st.session_state.page = 1
-#
+# Initialize page state
+if "page" not in st.session_state:
+    st.session_state.page = 1
+
 # # Pagination controls (above the table)
 # with st.container():
 #     col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
