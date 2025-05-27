@@ -112,7 +112,7 @@ with col2:
 if state_filter:
     filtered_df = filtered_df[filtered_df["State"].isin(state_filter)]
 else:
-    # If nothing selected, show empty
+    # If nothing selected show empty
     filtered_df = filtered_df.iloc[0:0]
 
 if department_filter != "All":
