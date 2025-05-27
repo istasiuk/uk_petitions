@@ -207,7 +207,7 @@ for col in date_columns:
 st.write(f"Showing page {page} of {total_pages} ({total_items} petitions total)")
 
 # Sort and reset index as before
-df_display = paged_df.sort_values(by='Signatures', ascending='Descending').reset_index(drop=True)
+df_display = paged_df.sort_values(by='Signatures', ascending=False).reset_index(drop=True)
 df_display.index.name = None
 
 # Format Signatures column
