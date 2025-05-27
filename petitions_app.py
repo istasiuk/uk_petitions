@@ -115,7 +115,7 @@ st.success(f"{len(df)} petitions")
 ITEMS_PER_PAGE = 50
 
 # Filters and page selector in one row using columns
-col1 = st.columns(1)
+col1, = st.columns(1)
 
 # Apply filters
 effective_state_filter = state_filter if state_filter else state_options
