@@ -92,9 +92,6 @@ with st.spinner("Fetching petitions..."):
 
 st.success(f"{len(df)} petitions")
 
-# Number of items per page
-ITEMS_PER_PAGE = 50
-
 filtered_df = df.copy()
 
 # Sorting
@@ -107,12 +104,6 @@ with st.sidebar:
 
     department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
     department_filter = st.multiselect("Department", options=department_options, default=[])
-
-    page = st.selectbox(
-        "Page",
-        options=list(range(1, total_pages + 1)),
-        index=0
-    )
 
     # Sorting
     st.subheader("Sort Options")
@@ -127,8 +118,53 @@ filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
 effective_department_filter = department_filter if department_filter else department_options
 filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_filter)]
 
+# Constants
+ITEMS_PER_PAGE = 10
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
+
+# Initialize page state
+if "page" not in st.session_state:
+    st.session_state.page = 1
+
+# Pagination controls (above the table)
+with st.container():
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+
+    with col1:
+        if st.button("First"):
+            st.session_state.page = 1
+
+    with col2:
+        if st.button("Previous"):
+            if st.session_state.page > 1:
+                st.session_state.page -= 1
+
+    with col3:
+        # Manual page input
+        page_input = st.text_input(
+            "Page:",
+            value=str(st.session_state.page),
+            key="page_input"
+        )
+        # Validate input and update current page
+        try:
+            input_page = int(page_input)
+            if 1 <= input_page <= total_pages:
+                st.session_state.page = input_page
+            else:
+                st.warning(f"Page number must be between 1 and {total_pages}")
+        except ValueError:
+            st.warning("Please enter a valid integer page number")
+
+    with col4:
+        if st.button("Next"):
+            if st.session_state.page < total_pages:
+                st.session_state.page += 1
+
+    with col5:
+        if st.button("Last"):
+            st.session_state.page = total_pages
 
 # Calculate averages on filtered data
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
