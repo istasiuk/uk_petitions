@@ -100,31 +100,23 @@ with st.sidebar:
     st.subheader("Filters")
 
     state_options = sorted(filtered_df['State'].dropna().unique().tolist())
-    state_options.append("-- Empty --")
     state_filter = st.multiselect("State", options=state_options, default=[])
 
     department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
-    department_options.append("-- Empty --")
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
-    # Sorting
-    st.subheader("Sort Options")
-
-    sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
-    sort_ascending = st.radio("Order:", options=["Descending", "Ascending"]) == "Descending"
+    # # Sorting
+    # st.subheader("Sort Options")
+    #
+    # sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
+    # sort_ascending = st.radio("Order:", options=["Descending", "Ascending"]) == "Descending"
 
 # Apply filters
-if state_filter:
-    conditions = filtered_df["State"].isin([s for s in state_filter if s != "-- Empty --"])
-    if "-- Empty --" in state_filter:
-        conditions |= filtered_df["State"].isna()
-    filtered_df = filtered_df[conditions]
+effective_state_filter = state_filter if state_filter else state_options
+filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
 
-if department_filter:
-    conditions = filtered_df["Department"].isin([d for d in department_filter if d != "-- Empty --"])
-    if "-- Empty --" in department_filter:
-        conditions |= filtered_df["Department"].isna()
-    filtered_df = filtered_df[conditions]
+effective_department_filter = department_filter if department_filter else department_options
+filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_filter)]
 
 # Constants
 ITEMS_PER_PAGE = 10
@@ -215,7 +207,7 @@ for col in date_columns:
 st.write(f"Showing page {page} of {total_pages} ({total_items} petitions total)")
 
 # Sort and reset index as before
-df_display = paged_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
+df_display = paged_df.sort_values(by='Signatures', ascending='Descending').reset_index(drop=True)
 df_display.index.name = None
 
 # Format Signatures column
