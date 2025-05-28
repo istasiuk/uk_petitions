@@ -159,7 +159,7 @@ with right:
     col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
 
     # Custom padding for vertical alignment
-    btn_style = '<div style="padding-top: 9px;">'
+    btn_style = '<div style="padding-top: 8.5px;">'
 
     with col1:
         st.markdown(btn_style, unsafe_allow_html=True)
