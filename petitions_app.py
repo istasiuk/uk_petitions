@@ -124,47 +124,6 @@ filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
 effective_department_filter = department_filter if department_filter else department_options
 filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_filter)]
 
-# Ensure page state is initialized
-if "page" not in st.session_state:
-    st.session_state.page = 1
-
-# Pagination row in one line
-col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
-
-# Total pages
-total_items = len(filtered_df)
-ITEMS_PER_PAGE = 50
-total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
-
-with col1:
-    if st.button("⏮ First"):
-        st.session_state.page = 1
-
-with col2:
-    if st.button("◀ Prev"):
-        if st.session_state.page > 1:
-            st.session_state.page -= 1
-
-with col3:
-    page_input = st.text_input("Page", value=str(st.session_state.page), key="page_input")
-    try:
-        input_page = int(page_input)
-        if 1 <= input_page <= total_pages:
-            st.session_state.page = input_page
-        else:
-            st.warning(f"Page must be between 1 and {total_pages}")
-    except ValueError:
-        st.warning("Enter a valid page number")
-
-with col4:
-    if st.button("Next ▶"):
-        if st.session_state.page < total_pages:
-            st.session_state.page += 1
-
-with col5:
-    if st.button("Last ⏭"):
-        st.session_state.page = total_pages
-
 # Calculate averages on filtered data
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
 avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at", "Response threshold (10,000) reached at")
@@ -182,6 +141,51 @@ col3.metric("Avg Resp Threshold → Response (days)", avg_response_threshold_to_
 col4.metric("Avg Opened → Debate Threshold (days)", avg_opened_to_debate_threshold if avg_opened_to_debate_threshold is not None else "N/A")
 col5.metric("Avg Debate Threshold → Scheduled (days)", avg_debate_threshold_to_scheduled if avg_debate_threshold_to_scheduled is not None else "N/A")
 col6.metric("Avg Scheduled → Outcome (days)", avg_scheduled_to_outcome if avg_scheduled_to_outcome is not None else "N/A")
+
+# Ensure session state is initialized
+if "page" not in st.session_state:
+    st.session_state.page = 1
+
+# Total pages
+total_items = len(filtered_df)
+ITEMS_PER_PAGE = 50
+total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
+
+# Outer row: left empty, right contains controls
+left, right = st.columns([1, 1])  # Adjust the ratio as needed
+
+with right:
+    # Subdivide right column into pagination controls
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+
+    with col1:
+        if st.button("⏮ First"):
+            st.session_state.page = 1
+
+    with col2:
+        if st.button("◀ Prev"):
+            if st.session_state.page > 1:
+                st.session_state.page -= 1
+
+    with col3:
+        page_input = st.text_input("Page", value=str(st.session_state.page), key="page_input")
+        try:
+            input_page = int(page_input)
+            if 1 <= input_page <= total_pages:
+                st.session_state.page = input_page
+            else:
+                st.warning(f"Page must be between 1 and {total_pages}")
+        except ValueError:
+            st.warning("Enter a valid page number")
+
+    with col4:
+        if st.button("Next ▶"):
+            if st.session_state.page < total_pages:
+                st.session_state.page += 1
+
+    with col5:
+        if st.button("Last ⏭"):
+            st.session_state.page = total_pages
 
 # Sort globally before pagination
 sorted_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
