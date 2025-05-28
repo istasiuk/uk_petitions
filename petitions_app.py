@@ -159,16 +159,18 @@ with right:
     col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
 
     with col1:
+        st.markdown("###")
         if st.button("⏮ First"):
             st.session_state.page = 1
 
     with col2:
+        st.markdown("###")
         if st.button("◀ Prev"):
             if st.session_state.page > 1:
                 st.session_state.page -= 1
 
     with col3:
-        page_input = st.text_input("", value=str(st.session_state.page), placeholder=f"Page {st.session_state.page}", key="page_input")
+        page_input = st.text_input("Page", value=str(st.session_state.page), key="page_input")
         try:
             input_page = int(page_input)
             if 1 <= input_page <= total_pages:
@@ -179,11 +181,13 @@ with right:
             st.warning("Enter a valid page number")
 
     with col4:
+        st.markdown("###")
         if st.button("Next ▶"):
             if st.session_state.page < total_pages:
                 st.session_state.page += 1
 
     with col5:
+        st.markdown("###")
         if st.button("Last ⏭"):
             st.session_state.page = total_pages
 
