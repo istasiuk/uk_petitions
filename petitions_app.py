@@ -162,12 +162,12 @@ with right:
     btn_style = '<div style="padding-top: 15px;">'
 
     with col1:
-        st.markdown(btn_style, unsafe_allow_html=True)
+        st.write("")
         if st.button("⏮ First"):
             st.session_state.page = 1
 
     with col2:
-        st.markdown(btn_style, unsafe_allow_html=True)
+        st.write("")
         if st.button("◀ Prev"):
             if st.session_state.page > 1:
                 st.session_state.page -= 1
@@ -184,13 +184,13 @@ with right:
             st.warning("Enter a valid page number")
 
     with col4:
-        st.markdown(btn_style, unsafe_allow_html=True)
+        st.write("")
         if st.button("Next ▶"):
             if st.session_state.page < total_pages:
                 st.session_state.page += 1
 
     with col5:
-        st.markdown(btn_style, unsafe_allow_html=True)
+        st.write("")
         if st.button("Last ⏭"):
             st.session_state.page = total_pages
 
