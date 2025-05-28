@@ -124,53 +124,41 @@ filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
 effective_department_filter = department_filter if department_filter else department_options
 filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_filter)]
 
-# Number of items per page
-ITEMS_PER_PAGE = 50
-total_items = len(filtered_df)
-total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
-
-# Initialize page state
+# Handle pagination logic before using `st.session_state.page`
 if "page" not in st.session_state:
     st.session_state.page = 1
 
-# Pagination controls (above the table)
-with st.container():
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+# Track button click state separately
+first = st.button("First")
+prev = st.button("Previous")
+next_ = st.button("Next")
+last = st.button("Last")
 
-    with col1:
-        if st.button("First"):
-            st.session_state.page = 1
+# Determine total pages
+total_items = len(filtered_df)
+ITEMS_PER_PAGE = 50
+total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
-    with col2:
-        if st.button("Previous"):
-            if st.session_state.page > 1:
-                st.session_state.page -= 1
+# Adjust page
+if first:
+    st.session_state.page = 1
+elif prev and st.session_state.page > 1:
+    st.session_state.page -= 1
+elif next_ and st.session_state.page < total_pages:
+    st.session_state.page += 1
+elif last:
+    st.session_state.page = total_pages
 
-    with col3:
-        # Manual page input
-        page_input = st.text_input(
-            "Page:",
-            value=str(st.session_state.page),
-            key="page_input"
-        )
-        # Validate input and update current page
-        try:
-            input_page = int(page_input)
-            if 1 <= input_page <= total_pages:
-                st.session_state.page = input_page
-            else:
-                st.warning(f"Page number must be between 1 and {total_pages}")
-        except ValueError:
-            st.warning("Please enter a valid integer page number")
-
-    with col4:
-        if st.button("Next"):
-            if st.session_state.page < total_pages:
-                st.session_state.page += 1
-
-    with col5:
-        if st.button("Last"):
-            st.session_state.page = total_pages
+# Manual page input (after button logic)
+page_input = st.text_input("Page", value=str(st.session_state.page))
+try:
+    input_page = int(page_input)
+    if 1 <= input_page <= total_pages:
+        st.session_state.page = input_page
+    else:
+        st.warning(f"Page must be 1–{total_pages}")
+except ValueError:
+    st.warning("Invalid page number")
 
 # Calculate averages on filtered data
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
