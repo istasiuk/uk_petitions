@@ -168,7 +168,7 @@ with right:
                 st.session_state.page -= 1
 
     with col3:
-        page_input = st.text_input("Page", value=str(st.session_state.page), key="page_input")
+        page_input = st.text_input("", value=str(st.session_state.page), placeholder=f"Page {st.session_state.page}", key="page_input")
         try:
             input_page = int(page_input)
             if 1 <= input_page <= total_pages:
