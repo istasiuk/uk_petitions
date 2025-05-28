@@ -114,9 +114,6 @@ with st.sidebar:
 
 st.success(f"{len(df)} petitions")
 
-# Number of items per page
-ITEMS_PER_PAGE = 50
-
 # Filters and page selector in one row using columns
 col1, = st.columns(1)
 
@@ -127,15 +124,53 @@ filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
 effective_department_filter = department_filter if department_filter else department_options
 filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_filter)]
 
+# Number of items per page
+ITEMS_PER_PAGE = 50
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
-with col1:
-    page = st.selectbox(
-        "Page:",
-        options=list(range(1, total_pages + 1)),
-        index=0  # default to first page
-    )
+# Initialize page state
+if "page" not in st.session_state:
+    st.session_state.page = 1
+
+# Pagination controls (above the table)
+with st.container():
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+
+    with col1:
+        if st.button("First"):
+            st.session_state.page = 1
+
+    with col2:
+        if st.button("Previous"):
+            if st.session_state.page > 1:
+                st.session_state.page -= 1
+
+    with col3:
+        # Manual page input
+        page_input = st.text_input(
+            "Page:",
+            value=str(st.session_state.page),
+            key="page_input"
+        )
+        # Validate input and update current page
+        try:
+            input_page = int(page_input)
+            if 1 <= input_page <= total_pages:
+                st.session_state.page = input_page
+            else:
+                st.warning(f"Page number must be between 1 and {total_pages}")
+        except ValueError:
+            st.warning("Please enter a valid integer page number")
+
+    with col4:
+        if st.button("Next"):
+            if st.session_state.page < total_pages:
+                st.session_state.page += 1
+
+    with col5:
+        if st.button("Last"):
+            st.session_state.page = total_pages
 
 # Calculate averages on filtered data
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
@@ -159,6 +194,7 @@ col6.metric("Avg Scheduled → Outcome (days)", avg_scheduled_to_outcome if avg_
 sorted_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
 
 # Paginate
+page = st.session_state.page
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
 paged_df = sorted_df.iloc[start_idx:end_idx]
