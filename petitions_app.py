@@ -76,7 +76,7 @@ st.title("UK Parliament Petitions Viewer")
 
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
-    st.rerun()
+    st.experimental_rerun()
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
@@ -151,32 +151,6 @@ ITEMS_PER_PAGE = 50
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
-left, right = st.columns([1, 1])
-with right:
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
-    with col1:
-        if st.button("⏮ First"):
-            st.session_state.page = 1
-    with col2:
-        if st.button("◀ Prev") and st.session_state.page > 1:
-            st.session_state.page -= 1
-    with col3:
-        page_input = st.text_input("Page", str(st.session_state.page))
-        try:
-            input_page = int(page_input)
-            if 1 <= input_page <= total_pages:
-                st.session_state.page = input_page
-            else:
-                st.warning(f"Page must be 1–{total_pages}")
-        except ValueError:
-            st.warning("Enter a valid page number")
-    with col4:
-        if st.button("Next ▶") and st.session_state.page < total_pages:
-            st.session_state.page += 1
-    with col5:
-        if st.button("Last ⏭"):
-            st.session_state.page = total_pages
-
 sorted_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
 start_idx = (st.session_state.page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
@@ -191,7 +165,33 @@ for col in date_columns:
     if col in paged_df.columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
-st.write(f"Showing page {st.session_state.page} of {total_pages} ({total_items} total)")
+# --- Pagination bar with buttons and page status on same line ---
+pagination_cols = st.columns([1, 5, 1, 1, 1, 1])
+
+with pagination_cols[0]:
+    if st.button("⏮ First"):
+        st.session_state.page = 1
+with pagination_cols[1]:
+    st.markdown(f"### Showing page **{st.session_state.page}** of **{total_pages}** ({total_items:,} total)")
+with pagination_cols[2]:
+    if st.button("◀ Prev") and st.session_state.page > 1:
+        st.session_state.page -= 1
+with pagination_cols[3]:
+    page_input = st.text_input("Page", str(st.session_state.page), key="page_input")
+    try:
+        input_page = int(page_input)
+        if 1 <= input_page <= total_pages:
+            st.session_state.page = input_page
+        else:
+            st.warning(f"Page must be 1–{total_pages}")
+    except ValueError:
+        st.warning("Enter a valid page number")
+with pagination_cols[4]:
+    if st.button("Next ▶") and st.session_state.page < total_pages:
+        st.session_state.page += 1
+with pagination_cols[5]:
+    if st.button("Last ⏭"):
+        st.session_state.page = total_pages
 
 df_display = paged_df.copy()
 df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
