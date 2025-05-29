@@ -29,6 +29,7 @@ def fetch_petitions():
 
             all_rows.append({
                 "Petition": f'<a href="{links.get("self").replace(".json", "")}" target="_blank">{attrs.get("action")}</a>' if links.get("self") else attrs.get("action"),
+                "Petition_text": attrs.get("action"),
                 "State": attrs.get("state"),
                 "Signatures": attrs.get("signature_count"),
                 "Created at": attrs.get("created_at"),
@@ -90,7 +91,6 @@ if st.button("⟳ Refresh Data"):
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
 
-df["Petition_Text"] = df["Petition"].str.extract(r'>(.*?)</a>', expand=False).fillna(df["Petition"])
 filtered_df = df.copy()
 
 # Sidebar
@@ -101,7 +101,7 @@ with st.sidebar:
     # Petition search by text
     search_text = st.text_input("Search Petition Text")
     if search_text:
-        filtered_df = filtered_df[filtered_df["Petition_Text"].str.contains(search_text, case=False, na=False)]
+        filtered_df = filtered_df[filtered_df["Petition_text"].str.contains(search_text, case=False, na=False)]
 
     # Replace NaN with a placeholder
     filtered_df["Department"] = filtered_df["Department"].fillna("Unassigned")
