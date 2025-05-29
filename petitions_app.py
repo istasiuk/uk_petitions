@@ -205,7 +205,7 @@ sorted_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending).re
 page = st.session_state.page
 start_idx = (page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
-paged_df = sorted_df.iloc[start_idx:end_idx]
+paged_df = sorted_df.iloc[start_idx:end_idx].copy()
 
 date_columns = [
     "Created at",
