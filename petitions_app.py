@@ -90,6 +90,8 @@ if st.button("⟳ Refresh Data"):
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
 
+# Prepare filtering
+df["Petition_Text"] = df["Petition"].str.extract(r'>(.*?)</a>', expand=False).fillna(df["Petition"])
 filtered_df = df.copy()
 
 # Sidebar
@@ -100,7 +102,7 @@ with st.sidebar:
     # Petition search by text
     search_text = st.text_input("Search Petition Text")
     if search_text:
-        filtered_df = filtered_df[filtered_df["Petition"].str.contains(search_text, case=False, na=False)]
+        filtered_df = filtered_df[filtered_df["Petition_Text"].str.contains(search_text, case=False, na=False)]
 
     # Replace NaN with a placeholder
     filtered_df["Department"] = filtered_df["Department"].fillna("Unassigned")
@@ -110,6 +112,9 @@ with st.sidebar:
 
     department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
     department_filter = st.multiselect("Department", options=department_options, default=[])
+
+    # Drop temporary column used for filtering
+    filtered_df.drop(columns=["Petition_Text"], inplace=True)
 
     # Sorting
     st.subheader("Sort Options")
