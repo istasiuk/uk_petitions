@@ -214,6 +214,11 @@ df_display = paged_df.copy()
 df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
 df_display["Response"] = df_display["Response"].apply(add_tooltip)
 df_display = df_display.fillna("")
+
+# Drop 'Petition_text' column before displaying
+if "Petition_text" in df_display.columns:
+    df_display = df_display.drop(columns=["Petition_text"])
+
 html_table = df_display.to_html(escape=False, index=False)
 
 # CSS for formatting table
