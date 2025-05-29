@@ -90,7 +90,6 @@ if st.button("⟳ Refresh Data"):
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
 
-# Prepare filtering
 df["Petition_Text"] = df["Petition"].str.extract(r'>(.*?)</a>', expand=False).fillna(df["Petition"])
 filtered_df = df.copy()
 
@@ -123,9 +122,6 @@ with st.sidebar:
     sort_ascending = st.radio("Order:", options=["Ascending", "Descending"]) == "Descending"
 
 st.success(f"{len(df)} petitions")
-
-# Filters and page selector in one row using columns
-col1, = st.columns(1)
 
 # Apply filters
 effective_state_filter = state_filter if state_filter else state_options
