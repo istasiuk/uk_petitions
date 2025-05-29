@@ -117,7 +117,7 @@ with st.sidebar:
     # Sort options
     st.subheader("Sort Options")
     sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
-    sort_ascending = st.radio("Order:", options=["Ascending", "Descending"]) == "Ascending"
+    sort_ascending = st.radio("Order:", options=["Ascending", "Descending"]) == "Descending"
 
 # Apply filters
 filtered_df = df.copy()
