@@ -166,7 +166,7 @@ for col in date_columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
 # --- Pagination bar with buttons and page status on same line ---
-pagination_cols = st.columns([1, 5, 1, 1, 1, 1])
+pagination_cols = st.columns([5, 1, 1, 1, 1, 1])
 
 with pagination_cols[0]:
     st.markdown(f"### Showing page **{st.session_state.page}** of **{total_pages}** ({total_items:,} total)")
