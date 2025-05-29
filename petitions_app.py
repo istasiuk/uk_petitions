@@ -220,7 +220,7 @@ date_columns = [
 
 for col in date_columns:
     if col in paged_df.columns:
-        paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
+        paged_df.loc[:, col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
 st.write(f"Showing page {page} of {total_pages} ({total_items} petitions total)")
 
