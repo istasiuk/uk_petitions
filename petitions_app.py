@@ -107,8 +107,8 @@ with st.sidebar:
     department_options = sorted(filtered_df['Department'].dropna().unique().tolist())
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
-    # # Petition search by text
-    # search_text = st.text_input("Search Petition Text")
+    # Petition search by text
+    search_text = st.text_input("Search Petition Text")
 
     # Sorting
     st.subheader("Sort Options")
@@ -125,8 +125,7 @@ filtered_df = filtered_df[filtered_df["State"].isin(effective_state_filter)]
 effective_department_filter = department_filter if department_filter else department_options
 filtered_df = filtered_df[filtered_df["Department"].isin(effective_department_filter)]
 
-# if search_text:
-#     filtered_df = filtered_df[filtered_df["Petition_text"].str.contains(search_text, case=False, na=False)]
+filtered_df = filtered_df[filtered_df["Petition_text"].str.contains(search_text, case=False, na=False)]
 
 # Calculate averages on filtered data
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
