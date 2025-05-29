@@ -97,6 +97,11 @@ with st.sidebar:
     # Filtering
     st.subheader("Filters")
 
+    # Petition search by text
+    search_text = st.text_input("Search Petition Text")
+    if search_text:
+        filtered_df = filtered_df[filtered_df["Petition"].str.contains(search_text, case=False, na=False)]
+
     # Replace NaN with a placeholder
     filtered_df["Department"] = filtered_df["Department"].fillna("Unassigned")
 
