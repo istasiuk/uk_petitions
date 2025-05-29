@@ -99,10 +99,10 @@ with st.sidebar:
     state_filter = st.multiselect("State", options=state_options, default=[])
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
-    st.markdown("### Search or Select Petition")
+    st.markdown("### Petition")
     petition_texts = df["Petition_text"].dropna().unique().tolist()
-    selected_dropdown = st.selectbox("Choose a petition from list (optional)", [""] + petition_texts)
-    custom_search = st.text_input("Or enter your own text (optional)")
+    selected_dropdown = st.selectbox("Choose a petition", [""] + petition_texts)
+    custom_search = st.text_input("Or enter your own text")
 
     if selected_dropdown and custom_search:
         st.warning("Using both dropdown and custom text. Only dropdown will be used.")
