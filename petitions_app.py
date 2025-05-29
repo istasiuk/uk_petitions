@@ -3,10 +3,8 @@ import pandas as pd
 import streamlit as st
 import math
 
-# Set Streamlit to use wide layout
 st.set_page_config(layout="wide")
 
-# Caches the petition data and shows a spinner during load
 @st.cache_data(show_spinner=True)
 def fetch_petitions():
     all_rows = []
@@ -55,7 +53,6 @@ def fetch_petitions():
     df = pd.DataFrame(all_rows)
     return df
 
-# Adds tooltip to long text
 def add_tooltip(text, max_len=50):
     if not text:
         return ""
@@ -63,7 +60,6 @@ def add_tooltip(text, max_len=50):
     escaped_text = text.replace('"', '&quot;').replace("'", "&apos;")
     return f'<span title="{escaped_text}">{short_text}</span>'
 
-# Calculates average days between two date columns
 def avg_days_between(df, start_col, end_col):
     start_dates = pd.to_datetime(df[start_col], errors='coerce')
     end_dates = pd.to_datetime(df[end_col], errors='coerce')
@@ -76,64 +72,63 @@ def avg_days_between(df, start_col, end_col):
     diffs = (end_dates - start_dates).dt.days.dropna()
     return int(diffs.mean()) if len(diffs) > 0 else None
 
-# Title
 st.title("UK Parliament Petitions Viewer")
 
-# Refresh data button
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
     st.rerun()
 
-# Load data with spinner
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
 
-# Check if data is valid
 if df.empty:
     st.error("No petition data found. Please refresh or check API availability.")
     st.stop()
 
-# Sidebar: Filtering and sorting controls
 with st.sidebar:
     st.subheader("Filters")
 
-    # Ensure columns exist
     if "Department" not in df.columns or "State" not in df.columns or "Petition_text" not in df.columns:
         st.error("Expected columns missing in the data.")
         st.stop()
 
     df["Department"] = df["Department"].fillna("Unassigned")
-
-    # Filters
     state_options = sorted(df["State"].dropna().unique().tolist())
     department_options = sorted(df["Department"].dropna().unique().tolist())
 
     state_filter = st.multiselect("State", options=state_options, default=[])
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
-    # Search box
-    search_text = st.text_input("Search Petition Text")
+    st.markdown("### Search or Select Petition")
+    petition_texts = df["Petition_text"].dropna().unique().tolist()
+    selected_dropdown = st.selectbox("Choose a petition from list (optional)", [""] + petition_texts)
+    custom_search = st.text_input("Or enter your own text (optional)")
 
-    # Sort options
+    if selected_dropdown and custom_search:
+        st.warning("Using both dropdown and custom text. Only dropdown will be used.")
+        active_search = selected_dropdown
+    elif selected_dropdown:
+        active_search = selected_dropdown
+    elif custom_search:
+        active_search = custom_search
+    else:
+        active_search = ""
+
     st.subheader("Sort Options")
     sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
     sort_ascending = st.radio("Order:", options=["Ascending", "Descending"]) == "Descending"
 
-# Apply filters
-filtered_df = df.copy()
 effective_state_filter = state_filter if state_filter else state_options
 effective_department_filter = department_filter if department_filter else department_options
 
-filtered_df = filtered_df[
-    filtered_df["State"].isin(effective_state_filter) &
-    filtered_df["Department"].isin(effective_department_filter) &
-    filtered_df["Petition_text"].str.contains(search_text, case=False, na=False)
+filtered_df = df[
+    df["State"].isin(effective_state_filter) &
+    df["Department"].isin(effective_department_filter) &
+    df["Petition_text"].str.contains(active_search, case=False, na=False)
 ]
 
-# Show total
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
-# Compute averages
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
 avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at", "Response threshold (10,000) reached at")
 avg_response_threshold_to_response = avg_days_between(filtered_df, "Response threshold (10,000) reached at", "Government response at")
@@ -141,7 +136,6 @@ avg_opened_to_debate_threshold = avg_days_between(filtered_df, "Opened at", "Deb
 avg_debate_threshold_to_scheduled = avg_days_between(filtered_df, "Debate threshold (100,000) reached at", "Scheduled debate date")
 avg_scheduled_to_outcome = avg_days_between(filtered_df, "Scheduled debate date", "Debate outcome at")
 
-# Show metrics
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 col1.metric("Avg Created → Opened", avg_created_to_opened or "N/A")
 col2.metric("Avg Opened → Resp Threshold", avg_opened_to_response_threshold or "N/A")
@@ -150,7 +144,6 @@ col4.metric("Avg Opened → Debate Threshold", avg_opened_to_debate_threshold or
 col5.metric("Avg Debate Threshold → Scheduled", avg_debate_threshold_to_scheduled or "N/A")
 col6.metric("Avg Scheduled → Outcome", avg_scheduled_to_outcome or "N/A")
 
-# Pagination setup
 if "page" not in st.session_state:
     st.session_state.page = 1
 
@@ -158,19 +151,15 @@ ITEMS_PER_PAGE = 50
 total_items = len(filtered_df)
 total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
-# Pagination controls
 left, right = st.columns([1, 1])
 with right:
     col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
-
     with col1:
         if st.button("⏮ First"):
             st.session_state.page = 1
-
     with col2:
         if st.button("◀ Prev") and st.session_state.page > 1:
             st.session_state.page -= 1
-
     with col3:
         page_input = st.text_input("Page", str(st.session_state.page))
         try:
@@ -181,22 +170,18 @@ with right:
                 st.warning(f"Page must be 1–{total_pages}")
         except ValueError:
             st.warning("Enter a valid page number")
-
     with col4:
         if st.button("Next ▶") and st.session_state.page < total_pages:
             st.session_state.page += 1
-
     with col5:
         if st.button("Last ⏭"):
             st.session_state.page = total_pages
 
-# Sort before pagination
 sorted_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
 start_idx = (st.session_state.page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
 paged_df = sorted_df.iloc[start_idx:end_idx].copy()
 
-# Format dates
 date_columns = [
     "Created at", "Opened at", "Closed at",
     "Response threshold (10,000) reached at", "Government response at",
@@ -206,23 +191,19 @@ for col in date_columns:
     if col in paged_df.columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
-# Display current page
 st.write(f"Showing page {st.session_state.page} of {total_pages} ({total_items} total)")
 
-# Format display
 df_display = paged_df.copy()
 df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
 df_display["Response"] = df_display["Response"].apply(add_tooltip)
 df_display = df_display.fillna("")
 
-# Drop 'Petition_text' column before displaying
 if "Petition_text" in df_display.columns:
     df_display = df_display.drop(columns=["Petition_text"])
 
 html_table = df_display.to_html(escape=False, index=False)
-
-# CSS for formatting table
 signatures_col_index = df_display.columns.get_loc("Signatures") + 1
+
 css = f"""
 <style>
     div.dataframe-wrapper {{
@@ -269,7 +250,6 @@ css = f"""
 </style>
 """
 
-# Render HTML table with styles
 st.markdown(
     f"""
     <div class="dataframe-wrapper">
