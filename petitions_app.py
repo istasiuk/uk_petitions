@@ -169,7 +169,7 @@ for col in date_columns:
 pagination_cols = st.columns([5, 1, 1, 1, 1, 1])
 
 with pagination_cols[0]:
-    st.markdown(f"#### Showing page **{st.session_state.page}** of **{total_pages}** ({total_items:,} total)")
+    st.markdown(f"##### Showing page **{st.session_state.page}** of **{total_pages}** ({total_items:,} total)")
 with pagination_cols[1]:
     if st.button("⏮ First"):
         st.session_state.page = 1
@@ -177,7 +177,11 @@ with pagination_cols[2]:
     if st.button("◀ Prev") and st.session_state.page > 1:
         st.session_state.page -= 1
 with pagination_cols[3]:
-    page_input = st.text_input("Page", str(st.session_state.page), key="page_input")
+    left, right = st.columns([1, 2])
+    with left:
+        st.markdown("**Page**")
+    with right:
+        page_input = st.text_input("", str(st.session_state.page), key="page_input", label_visibility="collapsed")
     try:
         input_page = int(page_input)
         if 1 <= input_page <= total_pages:
