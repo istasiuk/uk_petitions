@@ -165,31 +165,51 @@ for col in date_columns:
     if col in paged_df.columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
-# --- Pagination bar with buttons and page status on same line ---
-pagination_cols = st.columns([5, 1, 1, 1, 1, 1])
+pagination_cols = st.columns([1, 1, 2, 1, 1])
 
+# ⏮ First
 with pagination_cols[0]:
-    st.markdown(f"##### Showing page **{st.session_state.page}** of **{total_pages}** ({total_items:,} total)")
-with pagination_cols[1]:
     if st.button("⏮ First"):
         st.session_state.page = 1
-with pagination_cols[2]:
+
+# ◀ Prev
+with pagination_cols[1]:
     if st.button("◀ Prev") and st.session_state.page > 1:
         st.session_state.page -= 1
-with pagination_cols[3]:
-    page_input = st.text_input("", str(st.session_state.page), key="page_input", label_visibility="collapsed")
+
+# [ Page input ] of [ total pages ]
+with pagination_cols[2]:
+    col1, col2, col3 = st.columns([2, 1, 2])
+    with col1:
+        page_input = st.text_input(
+            "", str(st.session_state.page),
+            key="page_input",
+            label_visibility="collapsed"
+        )
+    with col2:
+        st.markdown("<div style='padding-top: 0.45rem;'>of</div>", unsafe_allow_html=True)
+    with col3:
+        st.markdown(
+            f"<div style='padding-top: 0.45rem;'><strong>{total_pages}</strong></div>",
+            unsafe_allow_html=True
+        )
+
     try:
         input_page = int(page_input)
         if 1 <= input_page <= total_pages:
             st.session_state.page = input_page
         else:
-            st.warning(f"Page must be 1–{total_pages}")
+            st.warning(f"Page must be between 1 and {total_pages}")
     except ValueError:
         st.warning("Enter a valid page number")
-with pagination_cols[4]:
+
+# Next ▶
+with pagination_cols[3]:
     if st.button("Next ▶") and st.session_state.page < total_pages:
         st.session_state.page += 1
-with pagination_cols[5]:
+
+# Last ⏭
+with pagination_cols[4]:
     if st.button("Last ⏭"):
         st.session_state.page = total_pages
 
