@@ -359,7 +359,7 @@ with tab2:
         text = base.mark_text(
             align="right",
             baseline="middle",
-            dx=5,  # position just outside right edge of bars
+            dx=7,  # position just outside right edge of bars
             color='white'
         ).encode(
             text=alt.Text("Signatures:Q", format=",")
