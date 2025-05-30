@@ -133,7 +133,6 @@ with st.sidebar:
         st.stop()
 
     signature_range = st.slider(
-        "Select Signature Range",
         min_value=min_possible,
         max_value=max_possible,
         value=(custom_min, custom_max),
