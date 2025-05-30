@@ -167,12 +167,12 @@ avg_debate_threshold_to_scheduled = avg_days_between(filtered_df, "Debate thresh
 avg_scheduled_to_outcome = avg_days_between(filtered_df, "Scheduled debate date", "Debate outcome at")
 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
-col1.metric("Avg Created → Opened", avg_created_to_opened or "N/A")
-col2.metric("Avg Opened → Resp Threshold", avg_opened_to_response_threshold or "N/A")
-col3.metric("Avg Resp Threshold → Response", avg_response_threshold_to_response or "N/A")
-col4.metric("Avg Opened → Debate Threshold", avg_opened_to_debate_threshold or "N/A")
-col5.metric("Avg Debate Threshold → Scheduled", avg_debate_threshold_to_scheduled or "N/A")
-col6.metric("Avg Scheduled → Outcome", avg_scheduled_to_outcome or "N/A")
+col1.metric("Avg Created → Opened, days", avg_created_to_opened or "N/A")
+col2.metric("Avg Opened → Resp Threshold, days", avg_opened_to_response_threshold or "N/A")
+col3.metric("Avg Resp Threshold → Response, days", avg_response_threshold_to_response or "N/A")
+col4.metric("Avg Opened → Debate Threshold, days", avg_opened_to_debate_threshold or "N/A")
+col5.metric("Avg Debate Threshold → Scheduled, days", avg_debate_threshold_to_scheduled or "N/A")
+col6.metric("Avg Scheduled → Outcome, days", avg_scheduled_to_outcome or "N/A")
 
 if "page" not in st.session_state:
     st.session_state.page = 1
