@@ -100,6 +100,7 @@ with st.sidebar:
     state_filter = st.multiselect("State", options=state_options, default=[])
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
+    st.subheader("Signatures")
     max_signatures = int(df["Signatures"].max()) if not df["Signatures"].isnull().all() else 0
     min_signatures = int(df["Signatures"].min()) if not df["Signatures"].isnull().all() else 0
 
