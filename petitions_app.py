@@ -347,7 +347,7 @@ with tab2:
     else:
         base = alt.Chart(chart_data).encode(
             x=alt.X("Signatures:Q", axis=alt.Axis(labels=False, ticks=False, title=None)),  # Remove x-axis labels and ticks
-            y=alt.Y("Petition_text:N", sort='-x', axis=alt.Axis(title=None, labelLimit=1000)),  # No y-axis title
+            y=alt.Y("Petition_text:N", sort='-x', axis=alt.Axis(title=None, ticks=False, labelLimit=1000)),  # No y-axis title
             tooltip=[
                 alt.Tooltip("Petition_text:N", title="Petition"),
                 alt.Tooltip("Signatures:Q", format=",", title="Signatures")
