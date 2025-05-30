@@ -100,41 +100,47 @@ with st.sidebar:
     state_filter = st.multiselect("State", options=state_options, default=[])
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
-    # Max signatures to determine slider/input range
+    # Ensure min_value and max_value of number inputs and slider are consistent
     max_signatures = int(df["Signatures"].max()) if not df["Signatures"].isnull().all() else 0
-    min_signatures = int(df["Signatures"].min()) if not df["Signatures"].isnull().all() else 0
+    min_signatures = 0
 
-    # Add numeric inputs for min and max signatures
     custom_min = st.number_input(
         "Custom Min Signatures",
-        min_value=0,
-        max_value=max_signatures,
-        value=min_signatures,
+        min_value=min_possible,
+        max_value=max_possible,
+        value=st.session_state.get('custom_min', min_signatures),
         step=1,
         key="custom_min"
     )
+
     custom_max = st.number_input(
         "Custom Max Signatures",
-        min_value=0,
-        max_value=max_signatures,
-        value=max_signatures,
+        min_value=min_possible,
+        max_value=max_possible,
+        value=st.session_state.get('custom_max', max_signatures),
         step=1,
         key="custom_max"
     )
 
-    # Ensure custom_min <= custom_max
+    # Make sure custom_min <= custom_max
     if custom_min > custom_max:
         st.error("Custom Min cannot be greater than Custom Max.")
         st.stop()
 
-    # Now add the slider with values defaulting to custom inputs
+    # Now use the custom_min and custom_max as slider values
     signature_range = st.slider(
         "Select Signature Range",
-        min_value=0,
-        max_value=max_signatures,
+        min_value=min_possible,
+        max_value=max_possible,
         value=(custom_min, custom_max),
-        step=1
+        step=1,
+        key="signature_slider"
     )
+
+    # Synchronize number inputs and slider if desired
+    if signature_range[0] != custom_min or signature_range[1] != custom_max:
+        st.session_state.custom_min = signature_range[0]
+        st.session_state.custom_max = signature_range[1]
 
     # Use the slider values for filtering later on
     effective_min_signatures, effective_max_signatures = signature_range
