@@ -148,7 +148,7 @@ with st.sidebar:
 
     effective_min_signatures, effective_max_signatures = signature_range
 
-    st.markdown("### Petition")
+    st.subheader("Petitions")
     petition_texts = df["Petition_text"].dropna().unique().tolist()
 
     selected_dropdowns = st.multiselect("Choose petition(s)", petition_texts)
