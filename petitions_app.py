@@ -76,7 +76,7 @@ st.title("UK Parliament Petitions Viewer")
 
 if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
-    st.experimental_rerun()
+    st.rerun()
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
@@ -104,15 +104,15 @@ with st.sidebar:
     selected_dropdown = st.selectbox("Choose a petition", [""] + petition_texts)
     custom_search = st.text_input("Or enter your own text")
 
-    if selected_dropdown and custom_search:
-        st.warning("Using both dropdown and custom text. Only dropdown will be used.")
-        active_search = selected_dropdown
-    elif selected_dropdown:
-        active_search = selected_dropdown
+    if selected_dropdowns and custom_search:
+        st.warning("Using both dropdown and custom text. Only petitions from the multiselect will be used.")
+        active_searches = selected_dropdowns
+    elif selected_dropdowns:
+        active_searches = selected_dropdowns
     elif custom_search:
-        active_search = custom_search
+        active_searches = [custom_search]
     else:
-        active_search = ""
+        active_searches = []
 
     st.subheader("Sort Options")
     sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
@@ -124,7 +124,7 @@ effective_department_filter = department_filter if department_filter else depart
 filtered_df = df[
     df["State"].isin(effective_state_filter) &
     df["Department"].isin(effective_department_filter) &
-    df["Petition_text"].str.contains(active_search, case=False, na=False)
+    df["Petition_text"].apply(lambda text: any(s.lower() in text.lower() for s in active_searches) if pd.notnull(text) else False)
 ]
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
