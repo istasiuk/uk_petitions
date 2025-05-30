@@ -166,7 +166,7 @@ for col in date_columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
 # Add empty space at the beginning to push to the right
-pagination_cols = st.columns([7, 1, 1, 2, 1, 1])
+pagination_cols = st.columns([10, 1, 1, 2, 1, 1])
 
 # Empty spacer
 with pagination_cols[0]:
