@@ -100,9 +100,11 @@ with st.sidebar:
     state_filter = st.multiselect("State", options=state_options, default=[])
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
-    # Ensure min_value and max_value of number inputs and slider are consistent
     max_signatures = int(df["Signatures"].max()) if not df["Signatures"].isnull().all() else 0
-    min_signatures = 0
+    min_signatures = int(df["Signatures"].min()) if not df["Signatures"].isnull().all() else 0
+
+    min_possible = 0
+    max_possible = max_signatures
 
     custom_min = st.number_input(
         "Custom Min Signatures",
