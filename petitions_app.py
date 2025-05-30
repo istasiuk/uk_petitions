@@ -133,11 +133,13 @@ with st.sidebar:
         st.stop()
 
     signature_range = st.slider(
+        "",
         min_value=min_possible,
         max_value=max_possible,
         value=(custom_min, custom_max),
         step=1,
-        key="signature_slider"
+        key="signature_slider",
+        label_visibility="collapsed"
     )
 
     # Sync session state values if slider changes
