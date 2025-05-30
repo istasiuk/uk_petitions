@@ -130,8 +130,8 @@ with st.sidebar:
     # Map display name back to actual column name
     sort_column = "Petition_text" if sort_column_display == "Petition" else sort_column_display
 
-    sort_ascending = st.radio("Order:", options=["Ascending", "Descending"]) == "Descending"
-
+    order = st.radio("Order:", options=["Ascending", "Descending"], index=1)
+    sort_ascending = order == "Ascending"
 effective_state_filter = state_filter if state_filter else state_options
 effective_department_filter = department_filter if department_filter else department_options
 
