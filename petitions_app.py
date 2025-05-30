@@ -101,6 +101,7 @@ with st.sidebar:
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
     st.subheader("Signatures")
+
     max_signatures = int(df["Signatures"].max()) if not df["Signatures"].isnull().all() else 0
     min_signatures = int(df["Signatures"].min()) if not df["Signatures"].isnull().all() else 0
 
@@ -133,7 +134,6 @@ with st.sidebar:
         st.stop()
 
     signature_range = st.slider(
-        "Select Signature Range",
         min_value=min_possible,
         max_value=max_possible,
         value=(custom_min, custom_max),
