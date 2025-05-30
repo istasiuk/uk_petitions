@@ -346,15 +346,8 @@ with tab2:
         st.info("No petitions to show in chart with the current filters.")
     else:
         base = alt.Chart(chart_data).encode(
-            x=alt.X(
-                "Signatures:Q",
-                axis=alt.Axis(labels=False, ticks=False, title=None, grid=False)  # Turn off vertical grid lines here
-            ),
-            y=alt.Y(
-                "Petition_text:N",
-                sort='-x',
-                axis=alt.Axis(title=None, ticks=False, labelLimit=1000)
-            ),
+            x=alt.X("Signatures:Q", axis=alt.Axis(labels=False, ticks=False, title=None, grid=False)),  # Remove x-axis labels and ticks
+            y=alt.Y("Petition_text:N", sort='-x', axis=alt.Axis(title=None, ticks=False, labelLimit=1000)),  # No y-axis title
             tooltip=[
                 alt.Tooltip("Petition_text:N", title="Petition"),
                 alt.Tooltip("Signatures:Q", format=",", title="Signatures")
@@ -366,7 +359,7 @@ with tab2:
         text = base.mark_text(
             align="left",
             baseline="middle",
-            dx=5  # position labels just outside the right edge of the bars
+            dx=5  # position just outside right edge of bars
         ).encode(
             text=alt.Text("Signatures:Q", format=",")
         )
