@@ -275,12 +275,13 @@ with tab1:
         try:
             input_page = int(page_input)
             if 1 <= input_page <= total_pages:
-                st.session_state.page = input_page
+                if st.session_state.page != input_page:
+                    st.session_state.page = input_page
+                    st.rerun()  # Rerun after page change
             else:
                 st.warning(f"Page must be between 1 and {total_pages}")
         except ValueError:
             st.warning("Enter a valid page number")
-
     # Next ▶
     with pagination_cols[4]:
         if st.button("Next ▶") and st.session_state.page < total_pages:
