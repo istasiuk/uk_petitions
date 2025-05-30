@@ -100,14 +100,44 @@ with st.sidebar:
     state_filter = st.multiselect("State", options=state_options, default=[])
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
-    # Add the signatures range filter
+    # Max signatures to determine slider/input range
     max_signatures = int(df["Signatures"].max()) if not df["Signatures"].isnull().all() else 0
-    signature_range = st.slider(
-        "Number of Signatures",
+    min_signatures = int(df["Signatures"].min()) if not df["Signatures"].isnull().all() else 0
+
+    # Add numeric inputs for min and max signatures
+    custom_min = st.number_input(
+        "Custom Min Signatures",
         min_value=0,
         max_value=max_signatures,
-        value=(0, max_signatures)
+        value=min_signatures,
+        step=1,
+        key="custom_min"
     )
+    custom_max = st.number_input(
+        "Custom Max Signatures",
+        min_value=0,
+        max_value=max_signatures,
+        value=max_signatures,
+        step=1,
+        key="custom_max"
+    )
+
+    # Ensure custom_min <= custom_max
+    if custom_min > custom_max:
+        st.error("Custom Min cannot be greater than Custom Max.")
+        st.stop()
+
+    # Now add the slider with values defaulting to custom inputs
+    signature_range = st.slider(
+        "Select Signature Range",
+        min_value=0,
+        max_value=max_signatures,
+        value=(custom_min, custom_max),
+        step=1
+    )
+
+    # Use the slider values for filtering later on
+    effective_min_signatures, effective_max_signatures = signature_range
 
     st.markdown("### Petition")
     petition_texts = df["Petition_text"].dropna().unique().tolist()
@@ -165,7 +195,7 @@ filtered_df = df[
     df["State"].isin(effective_state_filter) &
     df["Department"].isin(effective_department_filter) &
     petition_filter &
-    df["Signatures"].between(signature_range[0], signature_range[1])
+    df["Signatures"].between(effective_min_signatures, effective_max_signatures))
 ]
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
