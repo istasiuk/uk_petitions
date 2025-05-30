@@ -121,7 +121,15 @@ with st.sidebar:
         use_exact_match = False
 
     st.subheader("Sort Options")
-    sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
+    # Custom column list for dropdown (hide "Petition_text", show "Petition" instead)
+    sort_columns_display = ["Petition" if col == "Petition_text" else col for col in df.columns if
+                            col != "Petition_text"]
+    sort_column_display = st.selectbox("Column:", options=sort_columns_display, index=sort_columns_display.index(
+        "Signatures") if "Signatures" in sort_columns_display else 0)
+
+    # Map display name back to actual column name
+    sort_column = "Petition_text" if sort_column_display == "Petition" else sort_column_display
+
     sort_ascending = st.radio("Order:", options=["Ascending", "Descending"]) == "Descending"
 
 effective_state_filter = state_filter if state_filter else state_options
