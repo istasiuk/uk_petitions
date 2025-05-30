@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import streamlit as st
 import math
+import altair as alt
 
 st.set_page_config(layout="wide")
 
@@ -174,149 +175,176 @@ col4.metric("Avg Opened → Debate Threshold, days", avg_opened_to_debate_thresh
 col5.metric("Avg Debate Threshold → Scheduled, days", avg_debate_threshold_to_scheduled or "N/A")
 col6.metric("Avg Scheduled → Outcome, days", avg_scheduled_to_outcome or "N/A")
 
-if "page" not in st.session_state:
-    st.session_state.page = 1
+tab1, tab2 = st.tabs(["Petition List", "Statistics"])
 
-ITEMS_PER_PAGE = 50
-total_items = len(filtered_df)
-total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
-
-sorted_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
-start_idx = (st.session_state.page - 1) * ITEMS_PER_PAGE
-end_idx = start_idx + ITEMS_PER_PAGE
-paged_df = sorted_df.iloc[start_idx:end_idx].copy()
-
-date_columns = [
-    "Created at", "Opened at", "Closed at",
-    "Response threshold (10,000) reached at", "Government response at",
-    "Debate threshold (100,000) reached at", "Scheduled debate date", "Debate outcome at"
-]
-for col in date_columns:
-    if col in paged_df.columns:
-        paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
-
-st.markdown('<div style="margin-top: 30px;"></div>', unsafe_allow_html=True)
-
-# Add empty space at the beginning to push to the right
-pagination_cols = st.columns([10, 1, 1, 2, 1, 1])
-
-# Empty spacer
-with pagination_cols[0]:
-    pass
-
-# ⏮ First
-with pagination_cols[1]:
-    if st.button("⏮ First"):
+# Tab 1: Table only
+with tab1:
+    if "page" not in st.session_state:
         st.session_state.page = 1
-        st.rerun()
 
-# ◀ Prev
-with pagination_cols[2]:
-    if st.button("◀ Prev") and st.session_state.page > 1:
-        st.session_state.page -= 1
-        st.rerun()
+    ITEMS_PER_PAGE = 50
+    total_items = len(filtered_df)
+    total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
-# [ Page input ] of [ total pages ]
-with pagination_cols[3]:
-    col1, col2, col3 = st.columns([2, 1, 2])
-    with col1:
-        page_input = st.text_input(
-            "", str(st.session_state.page),
-            key="page_input",
-            label_visibility="collapsed"
-        )
-    with col2:
-        st.markdown("<div style='padding-top: 0.45rem;'>of</div>", unsafe_allow_html=True)
-    with col3:
-        st.markdown(
-            f"<div style='padding-top: 0.45rem;'><strong>{total_pages}</strong></div>",
-            unsafe_allow_html=True
-        )
+    sorted_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
+    start_idx = (st.session_state.page - 1) * ITEMS_PER_PAGE
+    end_idx = start_idx + ITEMS_PER_PAGE
+    paged_df = sorted_df.iloc[start_idx:end_idx].copy()
 
-    try:
-        input_page = int(page_input)
-        if 1 <= input_page <= total_pages:
-            st.session_state.page = input_page
-        else:
-            st.warning(f"Page must be between 1 and {total_pages}")
-    except ValueError:
-        st.warning("Enter a valid page number")
+    date_columns = [
+        "Created at", "Opened at", "Closed at",
+        "Response threshold (10,000) reached at", "Government response at",
+        "Debate threshold (100,000) reached at", "Scheduled debate date", "Debate outcome at"
+    ]
+    for col in date_columns:
+        if col in paged_df.columns:
+            paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
-# Next ▶
-with pagination_cols[4]:
-    if st.button("Next ▶") and st.session_state.page < total_pages:
-        st.session_state.page += 1
-        st.rerun()
+    st.markdown('<div style="margin-top: 30px;"></div>', unsafe_allow_html=True)
 
-# Last ⏭
-with pagination_cols[5]:
-    if st.button("Last ⏭"):
-        st.session_state.page = total_pages
-        st.rerun()
+    # Add empty space at the beginning to push to the right
+    pagination_cols = st.columns([10, 1, 1, 2, 1, 1])
 
-df_display = paged_df.copy()
-df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
-df_display["Response"] = df_display["Response"].apply(add_tooltip)
-df_display = df_display.fillna("")
+    # Empty spacer
+    with pagination_cols[0]:
+        pass
 
-if "Petition_text" in df_display.columns:
-    df_display = df_display.drop(columns=["Petition_text"])
+    # ⏮ First
+    with pagination_cols[1]:
+        if st.button("⏮ First"):
+            st.session_state.page = 1
+            st.rerun()
 
-html_table = df_display.to_html(escape=False, index=False)
-signatures_col_index = df_display.columns.get_loc("Signatures") + 1
+    # ◀ Prev
+    with pagination_cols[2]:
+        if st.button("◀ Prev") and st.session_state.page > 1:
+            st.session_state.page -= 1
+            st.rerun()
 
-css = f"""
-<style>
-    div.dataframe-wrapper {{
-        max-height: 600px;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-    }}
-    table {{
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
-    }}
-    thead th {{
-        position: sticky;
-        top: 0;
-        background: #0e1117;
-        color: #f0f0f0;
-        z-index: 2;
-        text-align: left !important;
-        padding: 6px 8px;
-        border: 1px solid #ddd;
-        font-weight: bold;
-        box-shadow: inset 0 -1px 0 #ccc, 0 2px 5px rgba(0,0,0,0.1);
-    }}
-    table th, table td {{
-        text-align: left !important;
-        padding: 6px 8px;
-        border: 1px solid #ddd;
-        vertical-align: top;
-        word-wrap: break-word;
-        white-space: normal;
-        overflow-wrap: break-word;
-    }}
-    table th:nth-child({signatures_col_index}), table td:nth-child({signatures_col_index}) {{
-        text-align: right !important;
-    }}
-    table td:nth-child(1), table td:nth-child(12) {{
-        max-width: 250px;
-    }}
-    table td span[title] {{
-        cursor: help;
-        border-bottom: 1px dotted #999;
-    }}
-</style>
-"""
+    # [ Page input ] of [ total pages ]
+    with pagination_cols[3]:
+        col1, col2, col3 = st.columns([2, 1, 2])
+        with col1:
+            page_input = st.text_input(
+                "", str(st.session_state.page),
+                key="page_input",
+                label_visibility="collapsed"
+            )
+        with col2:
+            st.markdown("<div style='padding-top: 0.45rem;'>of</div>", unsafe_allow_html=True)
+        with col3:
+            st.markdown(
+                f"<div style='padding-top: 0.45rem;'><strong>{total_pages}</strong></div>",
+                unsafe_allow_html=True
+            )
 
-st.markdown(
-    f"""
-    <div class="dataframe-wrapper">
-        {html_table}
-    </div>
-    {css}
-    """,
-    unsafe_allow_html=True
-)
+        try:
+            input_page = int(page_input)
+            if 1 <= input_page <= total_pages:
+                st.session_state.page = input_page
+            else:
+                st.warning(f"Page must be between 1 and {total_pages}")
+        except ValueError:
+            st.warning("Enter a valid page number")
+
+    # Next ▶
+    with pagination_cols[4]:
+        if st.button("Next ▶") and st.session_state.page < total_pages:
+            st.session_state.page += 1
+            st.rerun()
+
+    # Last ⏭
+    with pagination_cols[5]:
+        if st.button("Last ⏭"):
+            st.session_state.page = total_pages
+            st.rerun()
+
+    df_display = paged_df.copy()
+    df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
+    df_display["Response"] = df_display["Response"].apply(add_tooltip)
+    df_display = df_display.fillna("")
+
+    if "Petition_text" in df_display.columns:
+        df_display = df_display.drop(columns=["Petition_text"])
+
+    html_table = df_display.to_html(escape=False, index=False)
+    signatures_col_index = df_display.columns.get_loc("Signatures") + 1
+
+    css = f"""
+    <style>
+        div.dataframe-wrapper {{
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }}
+        thead th {{
+            position: sticky;
+            top: 0;
+            background: #0e1117;
+            color: #f0f0f0;
+            z-index: 2;
+            text-align: left !important;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            font-weight: bold;
+            box-shadow: inset 0 -1px 0 #ccc, 0 2px 5px rgba(0,0,0,0.1);
+        }}
+        table th, table td {{
+            text-align: left !important;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+            word-wrap: break-word;
+            white-space: normal;
+            overflow-wrap: break-word;
+        }}
+        table th:nth-child({signatures_col_index}), table td:nth-child({signatures_col_index}) {{
+            text-align: right !important;
+        }}
+        table td:nth-child(1), table td:nth-child(12) {{
+            max-width: 250px;
+        }}
+        table td span[title] {{
+            cursor: help;
+            border-bottom: 1px dotted #999;
+        }}
+    </style>
+    """
+
+    st.markdown(
+        f"""
+        <div class="dataframe-wrapper">
+            {html_table}
+        </div>
+        {css}
+        """,
+        unsafe_allow_html=True
+    )
+
+with tab2:
+    st.subheader("Top Petitions by Signatures")
+    top_n = st.slider("Number of petitions to display", 5, 50, 10)
+
+    chart_data = (
+        filtered_df[["Petition_text", "Signatures"]]
+        .dropna(subset=["Petition_text", "Signatures"])
+        .sort_values("Signatures", ascending=False)
+        .head(top_n)
+        .copy()
+    )
+    chart_data["Petition_text_short"] = chart_data["Petition_text"].apply(lambda x: x if len(x) <= 80 else x[:77] + "...")
+
+    if chart_data.empty:
+        st.info("No petitions to show in chart with the current filters.")
+    else:
+        chart = alt.Chart(chart_data).mark_bar().encode(
+            x=alt.X("Signatures:Q", title="Number of Signatures"),
+            y=alt.Y("Petition_text_short:N", sort='-x', title="Petition"),
+            tooltip=["Petition_text", "Signatures"]
+        ).properties(height=500)
+        st.altair_chart(chart, use_container_width=True)
