@@ -332,7 +332,7 @@ with tab1:
 
 with tab2:
     st.subheader("Top Petitions by Signatures")
-    top_n = st.slider("Number of petitions to display", 5, 50, 10)
+    top_n = st.slider("Number of petitions to display", 5, 20, 10)
 
     chart_data = (
         filtered_df[["Petition_text", "Signatures"]]
@@ -346,11 +346,11 @@ with tab2:
         st.info("No petitions to show in chart with the current filters.")
     else:
         base = alt.Chart(chart_data).encode(
-            x=alt.X("Signatures:Q", axis=alt.Axis(title=None)),  # No x-axis title
+            x=alt.X("Signatures:Q", axis=alt.Axis(labels=False, ticks=False, title=None)),  # Remove x-axis labels and ticks
             y=alt.Y("Petition_text:N", sort='-x', axis=alt.Axis(title=None, labelLimit=1000)),  # No y-axis title
             tooltip=[
                 alt.Tooltip("Petition_text:N", title="Petition"),
-                alt.Tooltip("Signatures:Q", format=",", title="Signatures")  # Thousands separator
+                alt.Tooltip("Signatures:Q", format=",", title="Signatures")
             ]
         )
 
@@ -359,9 +359,9 @@ with tab2:
         text = base.mark_text(
             align="left",
             baseline="middle",
-            dx=3  # Adjust position to right of bar
+            dx=5  # position just outside right edge of bars
         ).encode(
-            text=alt.Text("Signatures:Q", format=",")  # Label on bar
+            text=alt.Text("Signatures:Q", format=",")
         )
 
         chart = (bars + text).properties(height=top_n * 40)
