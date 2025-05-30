@@ -364,5 +364,5 @@ with tab2:
             text=alt.Text("Signatures:Q", format=",")  # Label on bar
         )
 
-        chart = (bars + text).properties(height=500)
+        chart = (bars + text).properties(height=top_n * 40)
         st.altair_chart(chart, use_container_width=True)
