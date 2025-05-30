@@ -195,6 +195,8 @@ for col in date_columns:
     if col in paged_df.columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
+st.markdown('<div style="margin-top: 30px;"></div>', unsafe_allow_html=True)
+
 # Add empty space at the beginning to push to the right
 pagination_cols = st.columns([10, 1, 1, 2, 1, 1])
 
