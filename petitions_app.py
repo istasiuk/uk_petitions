@@ -165,49 +165,40 @@ for col in date_columns:
     if col in paged_df.columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
-# Use form to group all actions (optional, helps with cleaner UX)
-with st.form(key="pagination_form", clear_on_submit=False):
-    # CSS trick to float everything to the right
-    st.markdown("""
-        <style>
-            .pagination-bar {
-                display: flex;
-                justify-content: flex-end;
-                align-items: center;
-                gap: 0.5rem;
-                flex-wrap: nowrap;
-            }
-            .pagination-bar input {
-                width: 50px;
-                text-align: center;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+# Add empty space at the beginning to push to the right
+pagination_cols = st.columns([5, 1, 1, 2, 1, 1])  # Adjust "5" as needed
 
-    st.markdown("<div class='pagination-bar'>", unsafe_allow_html=True)
+# Empty spacer
+with pagination_cols[0]:
+    pass
 
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+# ⏮ First
+with pagination_cols[1]:
+    if st.button("⏮ First"):
+        st.session_state.page = 1
 
+# ◀ Prev
+with pagination_cols[2]:
+    if st.button("◀ Prev") and st.session_state.page > 1:
+        st.session_state.page -= 1
+
+# [ Page input ] of [ total pages ]
+with pagination_cols[3]:
+    col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
-        first = st.form_submit_button("⏮ First")
+        page_input = st.text_input(
+            "", str(st.session_state.page),
+            key="page_input",
+            label_visibility="collapsed"
+        )
     with col2:
-        prev = st.form_submit_button("◀ Prev")
+        st.markdown("<div style='padding-top: 0.45rem;'>of</div>", unsafe_allow_html=True)
     with col3:
-        inner_col1, inner_col2, inner_col3 = st.columns([2, 1, 2])
-        with inner_col1:
-            page_input = st.text_input("", str(st.session_state.page), key="page_input", label_visibility="collapsed")
-        with inner_col2:
-            st.markdown("<div style='padding-top: 0.5rem;'>of</div>", unsafe_allow_html=True)
-        with inner_col3:
-            st.markdown(f"<div style='padding-top: 0.5rem;'><strong>{total_pages}</strong></div>", unsafe_allow_html=True)
-    with col4:
-        next_ = st.form_submit_button("Next ▶")
-    with col5:
-        last = st.form_submit_button("Last ⏭")
+        st.markdown(
+            f"<div style='padding-top: 0.45rem;'><strong>{total_pages}</strong></div>",
+            unsafe_allow_html=True
+        )
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Handle page logic
     try:
         input_page = int(page_input)
         if 1 <= input_page <= total_pages:
@@ -217,13 +208,14 @@ with st.form(key="pagination_form", clear_on_submit=False):
     except ValueError:
         st.warning("Enter a valid page number")
 
-    if first:
-        st.session_state.page = 1
-    elif prev and st.session_state.page > 1:
-        st.session_state.page -= 1
-    elif next_ and st.session_state.page < total_pages:
+# Next ▶
+with pagination_cols[4]:
+    if st.button("Next ▶") and st.session_state.page < total_pages:
         st.session_state.page += 1
-    elif last:
+
+# Last ⏭
+with pagination_cols[5]:
+    if st.button("Last ⏭"):
         st.session_state.page = total_pages
 
 df_display = paged_df.copy()
