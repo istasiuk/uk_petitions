@@ -357,7 +357,7 @@ with tab2:
         bars = base.mark_bar()
 
         text = base.mark_text(
-            align="right",
+            align="left",
             baseline="middle",
             dx=7,  # position just outside right edge of bars
             color='white'
