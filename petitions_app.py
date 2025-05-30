@@ -195,8 +195,7 @@ filtered_df = df[
     df["State"].isin(effective_state_filter) &
     df["Department"].isin(effective_department_filter) &
     petition_filter &
-    df["Signatures"].between(effective_min_signatures, effective_max_signatures))
-]
+    df["Signatures"].between(effective_min_signatures, effective_max_signatures)]
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
