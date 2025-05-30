@@ -109,12 +109,16 @@ with st.sidebar:
     if selected_dropdowns and custom_search:
         st.warning("Using both dropdown and custom text. Only dropdown will be used.")
         active_searches = selected_dropdowns
+        use_exact_match = True
     elif selected_dropdowns:
         active_searches = selected_dropdowns
+        use_exact_match = True
     elif custom_search:
         active_searches = [custom_search]
+        use_exact_match = False
     else:
         active_searches = None  # No filtering on petitions
+        use_exact_match = False
 
     st.subheader("Sort Options")
     sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
@@ -125,12 +129,18 @@ effective_department_filter = department_filter if department_filter else depart
 
 # Filter petitions based on petition text filter
 if active_searches is None:
-    # No petition filter: include all
     petition_filter = [True] * len(df)
 else:
-    petition_filter = df["Petition_text"].apply(
-        lambda text: any(s.lower() in text.lower() for s in active_searches) if pd.notnull(text) else False
-    )
+    if use_exact_match:
+        # Filter by exact match
+        petition_filter = df["Petition_text"].apply(
+            lambda text: text in active_searches if pd.notnull(text) else False
+        )
+    else:
+        # Filter by substring (case-insensitive)
+        petition_filter = df["Petition_text"].apply(
+            lambda text: any(s.lower() in text.lower() for s in active_searches) if pd.notnull(text) else False
+        )
 
 filtered_df = df[
     df["State"].isin(effective_state_filter) &
