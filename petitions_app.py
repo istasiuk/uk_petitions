@@ -102,33 +102,19 @@ with st.sidebar:
     st.markdown("### Petition")
     petition_texts = df["Petition_text"].dropna().unique().tolist()
 
-    # Add a "Select All" option at the top of the list
-    all_option = "All petitions"
-    petition_options = [all_option] + petition_texts
-
-    # By default select all petitions
-    default_selection = petition_options if not st.session_state.get("petition_selection") else st.session_state[
-        "petition_selection"]
-
-    selected_dropdown = st.multiselect(
-        "Choose petition(s)",
-        options=petition_options,
-        default=default_selection,
-        key="petition_selection"
-    )
-
-    # If user selects "All petitions", override selection with all petitions (excluding the 'All petitions' item itself)
-    if all_option in selected_dropdown:
-        active_searches = petition_texts  # all petitions without 'All petitions'
-    else:
-        active_searches = selected_dropdown
-
+    selected_dropdowns = st.multiselect("Choose petition(s)", petition_texts)
     custom_search = st.text_input("Or enter your own text")
 
-    if active_searches and custom_search:
+    # Decide which petition filter to use
+    if selected_dropdowns and custom_search:
         st.warning("Using both dropdown and custom text. Only dropdown will be used.")
+        active_searches = selected_dropdowns
+    elif selected_dropdowns:
+        active_searches = selected_dropdowns
     elif custom_search:
         active_searches = [custom_search]
+    else:
+        active_searches = None  # No filtering on petitions
 
     st.subheader("Sort Options")
     sort_column = st.selectbox("Column:", options=df.columns.tolist(), index=df.columns.get_loc("Signatures"))
@@ -137,10 +123,19 @@ with st.sidebar:
 effective_state_filter = state_filter if state_filter else state_options
 effective_department_filter = department_filter if department_filter else department_options
 
+# Filter petitions based on petition text filter
+if active_searches is None:
+    # No petition filter: include all
+    petition_filter = [True] * len(df)
+else:
+    petition_filter = df["Petition_text"].apply(
+        lambda text: any(s.lower() in text.lower() for s in active_searches) if pd.notnull(text) else False
+    )
+
 filtered_df = df[
     df["State"].isin(effective_state_filter) &
     df["Department"].isin(effective_department_filter) &
-    df["Petition_text"].apply(lambda x: any(term.lower() in x.lower() for term in active_searches) if pd.notna(x) else False)
+    petition_filter
 ]
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
