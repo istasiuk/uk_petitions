@@ -341,14 +341,31 @@ with tab2:
         .head(top_n)
         .copy()
     )
-    chart_data["Petition_text_short"] = chart_data["Petition_text"].apply(lambda x: x if len(x) <= 80 else x[:77] + "...")
+    chart_data["Petition_text_short"] = chart_data["Petition_text"].apply(
+        lambda x: x if len(x) <= 80 else x[:77] + "..."
+    )
 
     if chart_data.empty:
         st.info("No petitions to show in chart with the current filters.")
     else:
-        chart = alt.Chart(chart_data).mark_bar().encode(
-            x=alt.X("Signatures:Q", title="Number of Signatures"),
-            y=alt.Y("Petition_text_short:N", sort='-x', title="Petition"),
-            tooltip=["Petition_text", "Signatures"]
-        ).properties(height=500)
+        base = alt.Chart(chart_data).encode(
+            x=alt.X("Signatures:Q", axis=alt.Axis(title=None)),  # No x-axis title
+            y=alt.Y("Petition_text_short:N", sort='-x', axis=alt.Axis(title=None)),  # No y-axis title
+            tooltip=[
+                alt.Tooltip("Petition_text:N", title="Full Petition"),
+                alt.Tooltip("Signatures:Q", format=",", title="Signatures")  # Thousands separator
+            ]
+        )
+
+        bars = base.mark_bar()
+
+        text = base.mark_text(
+            align="left",
+            baseline="middle",
+            dx=3  # Adjust position to right of bar
+        ).encode(
+            text=alt.Text("Signatures:Q", format=",")  # Label on bar
+        )
+
+        chart = (bars + text).properties(height=500)
         st.altair_chart(chart, use_container_width=True)
