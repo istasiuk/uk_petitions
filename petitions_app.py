@@ -132,6 +132,7 @@ with st.sidebar:
 
     order = st.radio("Order:", options=["Ascending", "Descending"], index=1)
     sort_ascending = order == "Ascending"
+
 effective_state_filter = state_filter if state_filter else state_options
 effective_department_filter = department_filter if department_filter else department_options
 
@@ -205,11 +206,13 @@ with pagination_cols[0]:
 with pagination_cols[1]:
     if st.button("⏮ First"):
         st.session_state.page = 1
+        st.rerun()
 
 # ◀ Prev
 with pagination_cols[2]:
     if st.button("◀ Prev") and st.session_state.page > 1:
         st.session_state.page -= 1
+        st.rerun()
 
 # [ Page input ] of [ total pages ]
 with pagination_cols[3]:
@@ -241,11 +244,13 @@ with pagination_cols[3]:
 with pagination_cols[4]:
     if st.button("Next ▶") and st.session_state.page < total_pages:
         st.session_state.page += 1
+        st.rerun()
 
 # Last ⏭
 with pagination_cols[5]:
     if st.button("Last ⏭"):
         st.session_state.page = total_pages
+        st.rerun()
 
 df_display = paged_df.copy()
 df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
