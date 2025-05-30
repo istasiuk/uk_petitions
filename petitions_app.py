@@ -88,10 +88,6 @@ if df.empty:
 with st.sidebar:
     st.subheader("Filters")
 
-    if "Department" not in df.columns or "State" not in df.columns or "Petition_text" not in df.columns:
-        st.error("Expected columns missing in the data.")
-        st.stop()
-
     df["Department"] = df["Department"].fillna("Unassigned")
     state_options = sorted(df["State"].dropna().unique().tolist())
     department_options = sorted(df["Department"].dropna().unique().tolist())
@@ -101,7 +97,7 @@ with st.sidebar:
 
     st.markdown("### Petition")
     petition_texts = df["Petition_text"].dropna().unique().tolist()
-    selected_dropdown = st.selectbox("Choose a petition", [""] + petition_texts)
+    selected_dropdowns = st.multiselect("Choose petition(s)", petition_texts)
     custom_search = st.text_input("Or enter your own text")
 
     if selected_dropdowns and custom_search:
@@ -124,7 +120,9 @@ effective_department_filter = department_filter if department_filter else depart
 filtered_df = df[
     df["State"].isin(effective_state_filter) &
     df["Department"].isin(effective_department_filter) &
-    df["Petition_text"].apply(lambda text: any(s.lower() in text.lower() for s in active_searches) if pd.notnull(text) else False)
+    df["Petition_text"].apply(
+        lambda text: any(s.lower() in text.lower() for s in active_searches) if pd.notnull(text) else False
+    )
 ]
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
@@ -165,40 +163,21 @@ for col in date_columns:
     if col in paged_df.columns:
         paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
-# Add empty space at the beginning to push to the right
 pagination_cols = st.columns([10, 1, 1, 2, 1, 1])
-
-# Empty spacer
-with pagination_cols[0]:
-    pass
-
-# ⏮ First
 with pagination_cols[1]:
     if st.button("⏮ First"):
         st.session_state.page = 1
-
-# ◀ Prev
 with pagination_cols[2]:
     if st.button("◀ Prev") and st.session_state.page > 1:
         st.session_state.page -= 1
-
-# [ Page input ] of [ total pages ]
 with pagination_cols[3]:
     col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
-        page_input = st.text_input(
-            "", str(st.session_state.page),
-            key="page_input",
-            label_visibility="collapsed"
-        )
+        page_input = st.text_input("", str(st.session_state.page), key="page_input", label_visibility="collapsed")
     with col2:
         st.markdown("<div style='padding-top: 0.45rem;'>of</div>", unsafe_allow_html=True)
     with col3:
-        st.markdown(
-            f"<div style='padding-top: 0.45rem;'><strong>{total_pages}</strong></div>",
-            unsafe_allow_html=True
-        )
-
+        st.markdown(f"<div style='padding-top: 0.45rem;'><strong>{total_pages}</strong></div>", unsafe_allow_html=True)
     try:
         input_page = int(page_input)
         if 1 <= input_page <= total_pages:
@@ -207,13 +186,9 @@ with pagination_cols[3]:
             st.warning(f"Page must be between 1 and {total_pages}")
     except ValueError:
         st.warning("Enter a valid page number")
-
-# Next ▶
 with pagination_cols[4]:
     if st.button("Next ▶") and st.session_state.page < total_pages:
         st.session_state.page += 1
-
-# Last ⏭
 with pagination_cols[5]:
     if st.button("Last ⏭"):
         st.session_state.page = total_pages
