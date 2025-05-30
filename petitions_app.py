@@ -316,15 +316,15 @@ with tab1:
     </style>
     """
 
-    st.markdown(
-        f"""
-        <div class="dataframe-wrapper">
-            {html_table}
-        </div>
-        {css}
-        """,
-        unsafe_allow_html=True
-    )
+    # First inject CSS styles (just once)
+    st.markdown(css, unsafe_allow_html=True)
+
+    # Then render the table
+    st.markdown(f"""
+    <div class="dataframe-wrapper">
+        {html_table}
+    </div>
+    """, unsafe_allow_html=True)
 
 with tab2:
     st.subheader("Top Petitions by Signatures")
