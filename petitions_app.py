@@ -100,6 +100,15 @@ with st.sidebar:
     state_filter = st.multiselect("State", options=state_options, default=[])
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
+    # Add the signatures range filter
+    max_signatures = int(df["Signatures"].max()) if not df["Signatures"].isnull().all() else 0
+    signature_range = st.slider(
+        "Number of Signatures",
+        min_value=0,
+        max_value=max_signatures,
+        value=(0, max_signatures)
+    )
+
     st.markdown("### Petition")
     petition_texts = df["Petition_text"].dropna().unique().tolist()
 
@@ -155,7 +164,8 @@ else:
 filtered_df = df[
     df["State"].isin(effective_state_filter) &
     df["Department"].isin(effective_department_filter) &
-    petition_filter
+    petition_filter &
+    df["Signatures"].between(signature_range[0], signature_range[1])
 ]
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
