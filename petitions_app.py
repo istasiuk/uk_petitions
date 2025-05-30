@@ -102,7 +102,7 @@ with st.sidebar:
     st.markdown("### Petition")
     petition_texts = df["Petition_text"].dropna().unique().tolist()
 
-    selected_dropdown = st.multiselect("Choose petition(s)", [""] + petition_texts)
+    selected_dropdown = st.multiselect("Choose petition(s)", petition_texts)
     custom_search = st.text_input("Or enter your own text")
 
     if selected_dropdown and custom_search:
