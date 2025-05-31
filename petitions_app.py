@@ -319,6 +319,12 @@ with tab1:
             st.rerun()
 
     df_display = paged_df.copy()
+    df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
+    df_display["Response"] = df_display["Response"].apply(add_tooltip)
+    df_display = df_display.fillna("")
+
+    if "Petition_text" in df_display.columns:
+        df_display = df_display.drop(columns=["Petition_text"])
 
     # Get index positions (1-based) of the columns to right-align
     right_align_cols = [
@@ -331,30 +337,14 @@ with tab1:
         "Scheduled → Outcome, days"
     ]
 
-
-    def format_num_str(x):
-        try:
-            # Try to convert string to float
-            num = float(x)
-            # Convert to int and format with commas
-            return "{:,}".format(int(num))
-        except (ValueError, TypeError):
-            # If conversion fails or x is empty/None
-            return ""
-
     for col in right_align_cols:
         if col in df_display.columns:
-            df_display[col] = df_display[col].apply(format_num_str)
-
-    df_display["Response"] = df_display["Response"].apply(add_tooltip)
-    df_display = df_display.fillna("")
-
-    if "Petition_text" in df_display.columns:
-        df_display = df_display.drop(columns=["Petition_text"])
-
-    html_table = df_display.to_html(escape=False, index=False)
+            df_display[col] = df_display[col].apply(
+                lambda x: f"{int(x):,}" if pd.notnull(x) and isinstance(x, (int, float)) else x)
 
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
+
+    html_table = df_display.to_html(escape=False, index=False)
 
     css = f"""
     <style>
