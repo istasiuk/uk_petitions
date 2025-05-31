@@ -326,8 +326,6 @@ with tab1:
     if "Petition_text" in df_display.columns:
         df_display = df_display.drop(columns=["Petition_text"])
 
-    html_table = df_display.to_html(escape=False, index=False)
-
     # Get index positions (1-based) of the columns to right-align
     right_align_cols = [
         "Created → Opened, days",
@@ -337,10 +335,18 @@ with tab1:
         "Debate Threshold → Scheduled, days",
         "Scheduled → Outcome, days"
     ]
+
+    # Format all "→ days" columns to display as integers (no decimals)
     for col in right_align_cols:
         if col in df_display.columns:
             df_display[col] = df_display[col].apply(lambda x: f"{int(x)}" if pd.notnull(x) else "")
+
+            right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if
+                                   col in df_display.columns]
+
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
+
+    html_table = df_display.to_html(escape=False, index=False)
 
     css = f"""
     <style>
