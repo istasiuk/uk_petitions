@@ -75,18 +75,12 @@ def avg_days_between(df, start_col, end_col):
 
 def days_between(start_date, end_date):
     try:
-        # Try converting to datetime, errors='coerce' converts invalid parsing to NaT
         start = pd.to_datetime(start_date, errors='coerce')
         end = pd.to_datetime(end_date, errors='coerce')
-
-        # If either date is NaT (not a time), return None
         if pd.isna(start) or pd.isna(end):
             return None
-
         return (end - start).days
-
     except Exception:
-        # Catch anything unexpected
         return None
 
 st.title("UK Parliament Petitions Viewer")
