@@ -97,22 +97,23 @@ if st.button("⟳ Refresh Data"):
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
-    # Add time difference columns
-    df["Created → Opened, days"] = df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
-    df["Opened → Resp Threshold, days"] = df.apply(
-        lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
-    df["Resp Threshold → Response, days"] = df.apply(
-        lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
-    df["Opened → Debate Threshold, days"] = df.apply(
-        lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
-    df["Debate Threshold → Scheduled, days"] = df.apply(
-        lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
-    df["Scheduled → Outcome, days"] = df.apply(
-        lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
 if df.empty:
     st.error("No petition data found. Please refresh or check API availability.")
     st.stop()
+
+# Add time difference columns
+df["Created → Opened, days"] = df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
+df["Opened → Resp Threshold, days"] = df.apply(
+        lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
+df["Resp Threshold → Response, days"] = df.apply(
+        lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
+df["Opened → Debate Threshold, days"] = df.apply(
+        lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
+df["Debate Threshold → Scheduled, days"] = df.apply(
+        lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
+df["Scheduled → Outcome, days"] = df.apply(
+        lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
 with st.sidebar:
     st.subheader("Filters")
@@ -187,6 +188,7 @@ with st.sidebar:
     # Custom column list for dropdown (hide "Petition_text", show "Petition" instead)
     sort_columns_display = ["Petition" if col == "Petition_text" else col for col in df.columns if
                             col != "Petition_text"]
+
     sort_column_display = st.selectbox("Column:", options=sort_columns_display, index=sort_columns_display.index(
         "Signatures") if "Signatures" in sort_columns_display else 0)
 
