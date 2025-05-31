@@ -413,7 +413,7 @@ with tab1:
         f"table th:nth-child({i}), table td:nth-child({i}) {{ text-align: right !important; }}"
         for i in right_align_indices
     ]) + """
-        table td:nth-child(1), table td:nth-child(12) {
+        table td:nth-child(1), table td:nth-child(12), table td:nth-child(16) {
             max-width: 250px;
         }
         /* First column sticky */
