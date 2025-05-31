@@ -329,6 +329,8 @@ with tab1:
         "Scheduled → Outcome, days"
     ]
 
+    df_display = paged_df.copy()
+
     # Format numeric columns: truncate float to int, format with commas, empty if NaN
     for col in right_align_cols:
         if col in df_display.columns:
@@ -339,7 +341,6 @@ with tab1:
     # Get index positions (1-based for streamlit styling)
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
 
-    df_display = paged_df.copy()
     df_display["Response"] = df_display["Response"].apply(add_tooltip)
     df_display = df_display.fillna("")
 
