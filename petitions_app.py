@@ -216,17 +216,6 @@ filtered_df["Opened → Debate Threshold, days"] = filtered_df.apply(lambda row:
 filtered_df["Debate Threshold → Scheduled, days"] = filtered_df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
 filtered_df["Scheduled → Outcome, days"] = filtered_df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
-# Convert to nullable integer type to avoid float display like 12.0
-for col in [
-    "Created → Opened, days",
-    "Opened → Resp Threshold, days",
-    "Resp Threshold → Response, days",
-    "Opened → Debate Threshold, days",
-    "Debate Threshold → Scheduled, days",
-    "Scheduled → Outcome, days"
-]:
-    filtered_df[col] = filtered_df[col].astype("Int64")
-
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
