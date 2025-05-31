@@ -326,8 +326,20 @@ with tab1:
     if "Petition_text" in df_display.columns:
         df_display = df_display.drop(columns=["Petition_text"])
 
+    # Get index positions (1-based) of the columns to right-align
+    right_align_cols = [
+        "Signatures",
+        "Created → Opened, days",
+        "Opened → Resp Threshold, days",
+        "Resp Threshold → Response, days",
+        "Opened → Debate Threshold, days",
+        "Debate Threshold → Scheduled, days",
+        "Scheduled → Outcome, days"
+    ]
+
+    right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
+
     html_table = df_display.to_html(escape=False, index=False)
-    signatures_col_index = df_display.columns.get_loc("Signatures") + 1
 
     css = f"""
     <style>
