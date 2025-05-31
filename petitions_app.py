@@ -281,13 +281,11 @@ with tab1:
     with pagination_cols[1]:
         if st.button("⏮ First"):
             st.session_state.page = 1
-            st.rerun()
 
     # ◀ Prev
     with pagination_cols[2]:
         if st.button("◀ Prev") and st.session_state.page > 1:
             st.session_state.page -= 1
-            st.rerun()
 
     # [ Page input ] of [ total pages ]
     with pagination_cols[3]:
@@ -311,7 +309,6 @@ with tab1:
             if 1 <= input_page <= total_pages:
                 if st.session_state.page != input_page:
                     st.session_state.page = input_page
-                    st.rerun()  # Rerun after page change
             else:
                 st.warning(f"Page must be between 1 and {total_pages}")
         except ValueError:
@@ -320,13 +317,11 @@ with tab1:
     with pagination_cols[4]:
         if st.button("Next ▶") and st.session_state.page < total_pages:
             st.session_state.page += 1
-            st.rerun()
 
     # Last ⏭
     with pagination_cols[5]:
         if st.button("Last ⏭"):
             st.session_state.page = total_pages
-            st.rerun()
 
     df_display = paged_df.copy()
     df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
