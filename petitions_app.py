@@ -432,6 +432,7 @@ with tab1:
         table td:nth-child(20),
         table td:nth-child(21),
         table td:nth-child(22) {
+            width: 100px;
             max-width: 100px;
         }
         table td:nth-child(1), table td:nth-child(12), table td:nth-child(16) {
