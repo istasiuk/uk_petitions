@@ -74,11 +74,14 @@ def avg_days_between(df, start_col, end_col):
     return int(diffs.mean()) if len(diffs) > 0 else None
 
 def days_between(start, end):
-    start = pd.to_datetime(start, errors='coerce')
-    end = pd.to_datetime(end, errors='coerce')
-    if pd.isnull(start) or pd.isnull(end):
+    try:
+        start_date = pd.to_datetime(start, errors='coerce')
+        end_date = pd.to_datetime(end, errors='coerce')
+        if pd.isnull(start_date) or pd.isnull(end_date):
+            return None
+        return (end_date - start_date).days
+    except Exception:
         return None
-    return (end - start).days
 
 st.title("UK Parliament Petitions Viewer")
 
