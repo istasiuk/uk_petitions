@@ -217,10 +217,10 @@ col_refresh, col_download = st.columns([1, 1])
 with col_refresh:
     if st.button("⟳ Refresh Data"):
         fetch_petitions.clear()
-        st.experimental_rerun()
+        st.rerun()
 
 with col_download:
-    csv_data = filtered_df.to_csv(index=False).encode('utf-8')
+    csv_data = filtered_df.to_csv(index=False, header=True).encode('utf-8')
     st.download_button(
         label="Download CSV",
         data=csv_data,
