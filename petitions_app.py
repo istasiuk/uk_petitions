@@ -86,7 +86,7 @@ def days_between(start_date, end_date):
         end = end.tz_convert(None)
 
     diff = (end - start).days
-    return int(diff) if diff >= 0 else None
+    return int(diff.mean()) if diff >= 0 else None
 
 st.title("UK Parliament Petitions Viewer")
 
