@@ -339,24 +339,7 @@ with tab1:
 
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
 
-    df_display_for_html = df_display.copy()
-
-
-    def safe_int_format(x):
-        if pd.isnull(x):
-            return ""
-        try:
-            # Round before int conversion to avoid errors on floats
-            return f"{int(round(float(x))):,}"
-        except Exception:
-            # fallback: just return original as string
-            return str(x)
-
-    for col in right_align_cols:
-        if col in df_display_for_html.columns:
-            df_display_for_html[col] = df_display_for_html[col].apply(safe_int_format)
-
-    html_table = df_display_for_html.to_html(escape=False, index=False)
+    html_table = df_display.to_html(escape=False, index=False)
 
     css = f"""
     <style>
