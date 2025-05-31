@@ -73,6 +73,21 @@ def avg_days_between(df, start_col, end_col):
     diffs = (end_dates - start_dates).dt.days.dropna()
     return int(diffs.mean()) if len(diffs) > 0 else None
 
+def days_between(start_date, end_date):
+    start = pd.to_datetime(start_date, errors='coerce')
+    end = pd.to_datetime(end_date, errors='coerce')
+
+    if pd.isna(start) or pd.isna(end):
+        return None
+
+    if start.tz is not None:
+        start = start.tz_convert(None)
+    if end.tz is not None:
+        end = end.tz_convert(None)
+
+    diff = (end - start).days
+    return diff if diff >= 0 else None
+
 st.title("UK Parliament Petitions Viewer")
 
 if st.button("⟳ Refresh Data"):
@@ -189,9 +204,17 @@ else:
 filtered_df = df[
     (df["State"].isin(effective_state_filter)) &
     (df["Department"].isin(effective_department_filter)) &
-    (petition_filter) &
+    petition_filter &
     (df["Signatures"].between(effective_min_signatures, effective_max_signatures))
 ]
+
+# Add time difference columns
+filtered_df["Created → Opened, days"] = filtered_df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
+filtered_df["Opened → Resp Threshold, days"] = filtered_df.apply(lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
+filtered_df["Resp Threshold → Response, days"] = filtered_df.apply(lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
+filtered_df["Opened → Debate Threshold, days"] = filtered_df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
+filtered_df["Debate Threshold → Scheduled, days"] = filtered_df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
+filtered_df["Scheduled → Outcome, days"] = filtered_df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
