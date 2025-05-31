@@ -102,6 +102,19 @@ if df.empty:
     st.stop()
 
 with st.sidebar:
+    # Add time difference columns
+    df["Created → Opened, days"] = df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
+    df["Opened → Resp Threshold, days"] = df.apply(
+        lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
+    df["Resp Threshold → Response, days"] = df.apply(
+        lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
+    df["Opened → Debate Threshold, days"] = df.apply(
+        lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
+    df["Debate Threshold → Scheduled, days"] = df.apply(
+        lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
+    df["Scheduled → Outcome, days"] = df.apply(
+        lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
+
     st.subheader("Filters")
 
     if "Department" not in df.columns or "State" not in df.columns or "Petition_text" not in df.columns:
@@ -207,14 +220,6 @@ filtered_df = df[
     petition_filter &
     (df["Signatures"].between(effective_min_signatures, effective_max_signatures))
 ]
-
-# Add time difference columns
-filtered_df["Created → Opened, days"] = (filtered_df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1).astype("Int64"))
-filtered_df["Opened → Resp Threshold, days"] = (filtered_df.apply(lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1).astype("Int64"))
-filtered_df["Resp Threshold → Response, days"] = (filtered_df.apply(lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1).astype("Int64"))
-filtered_df["Opened → Debate Threshold, days"] = (filtered_df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1).astype("Int64"))
-filtered_df["Debate Threshold → Scheduled, days"] = (filtered_df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1).astype("Int64"))
-filtered_df["Scheduled → Outcome, days"] = (filtered_df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1).astype("Int64"))
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
