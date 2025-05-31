@@ -42,6 +42,10 @@ def fetch_petitions():
                 "Debate outcome at": attrs.get("debate_outcome_at"),
                 "Response": response_data.get("summary"),
                 "Debate video": f'<a href="{debate.get("video_url")}" target="_blank">Video</a>' if debate.get("video_url") else "",
+                "Debate transcript": f'<a href="{debate.get("transcript_url")}" target="_blank">Transcript</a>' if debate.get(
+                    "transcript_url") else "",
+                "Debate research": f'<a href="{debate.get("debate_pack_url")}" target="_blank">Research</a>' if debate.get(
+                    "debate_pack_url") else "",
                 "Department": departments[0].get("name") if departments else "Unassigned"
             })
 
