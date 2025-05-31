@@ -287,10 +287,12 @@ with tab1:
     with pagination_cols[1]:
         if st.button("⏮ First"):
             set_page(1)
+            st.rerun()
 
     with pagination_cols[2]:
         if st.button("◀ Prev"):
             set_page(max(1, st.session_state.page - 1))
+            st.rerun()
 
     with pagination_cols[3]:
         col1, col2, col3 = st.columns([2, 1, 2])
@@ -311,10 +313,12 @@ with tab1:
     with pagination_cols[4]:
         if st.button("Next ▶"):
             set_page(min(total_pages, st.session_state.page + 1))
+            st.rerun()
 
     with pagination_cols[5]:
         if st.button("Last ⏭"):
             set_page(total_pages)
+            st.rerun()
 
     df_display = paged_df.copy()
     df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
