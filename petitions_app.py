@@ -76,6 +76,18 @@ def fetch_petitions():
     df["Debate Threshold → Scheduled, days"] = df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
     df["Scheduled → Outcome, days"] = df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
+    int_cols = [
+        "Created → Opened, days",
+        "Opened → Resp Threshold, days",
+        "Resp Threshold → Response, days",
+        "Opened → Debate Threshold, days",
+        "Debate Threshold → Scheduled, days",
+        "Scheduled → Outcome, days"
+    ]
+
+    for col in int_cols:
+        df[col] = df[col].astype("Int64")
+
     return df
 
 def add_tooltip(text, max_len=50):
