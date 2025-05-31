@@ -209,12 +209,12 @@ filtered_df = df[
 ]
 
 # Add time difference columns
-filtered_df["Created → Opened, days"] = filtered_df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
-filtered_df["Opened → Resp Threshold, days"] = filtered_df.apply(lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
-filtered_df["Resp Threshold → Response, days"] = filtered_df.apply(lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
-filtered_df["Opened → Debate Threshold, days"] = filtered_df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
-filtered_df["Debate Threshold → Scheduled, days"] = filtered_df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
-filtered_df["Scheduled → Outcome, days"] = filtered_df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
+filtered_df["Created → Opened, days"] = (filtered_df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1).astype("Int64"))
+filtered_df["Opened → Resp Threshold, days"] = (filtered_df.apply(lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1).astype("Int64"))
+filtered_df["Resp Threshold → Response, days"] = (filtered_df.apply(lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1).astype("Int64"))
+filtered_df["Opened → Debate Threshold, days"] = (filtered_df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1).astype("Int64"))
+filtered_df["Debate Threshold → Scheduled, days"] = (filtered_df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1).astype("Int64"))
+filtered_df["Scheduled → Outcome, days"] = (filtered_df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1).astype("Int64"))
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
@@ -326,6 +326,8 @@ with tab1:
     if "Petition_text" in df_display.columns:
         df_display = df_display.drop(columns=["Petition_text"])
 
+    html_table = df_display.to_html(escape=False, index=False)
+
     # Get index positions (1-based) of the columns to right-align
     right_align_cols = [
         "Signatures",
@@ -336,15 +338,7 @@ with tab1:
         "Debate Threshold → Scheduled, days",
         "Scheduled → Outcome, days"
     ]
-
-    for col in right_align_cols:
-        if col in df_display.columns:
-            df_display[col] = df_display[col].apply(
-                lambda x: f"{int(x):,}" if pd.notnull(x) and isinstance(x, (int, float)) else x)
-
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
-
-    html_table = df_display.to_html(escape=False, index=False)
 
     css = f"""
     <style>
