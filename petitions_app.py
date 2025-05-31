@@ -73,6 +73,21 @@ def avg_days_between(df, start_col, end_col):
     diffs = (end_dates - start_dates).dt.days.dropna()
     return int(diffs.mean()) if len(diffs) > 0 else None
 
+def days_between(start_date, end_date):
+    start = pd.to_datetime(start_date, errors='coerce')
+    end = pd.to_datetime(end_date, errors='coerce')
+
+    if pd.isna(start) or pd.isna(end):
+        return None
+
+    if start.tz is not None:
+        start = start.tz_convert(None)
+    if end.tz is not None:
+        end = end.tz_convert(None)
+
+    diff = (end - start).days
+    return int(diff) if diff >= 0 else None
+
 st.title("UK Parliament Petitions Viewer")
 
 if st.button("⟳ Refresh Data"):
@@ -187,10 +202,19 @@ else:
         )
 
 filtered_df = df[
-    df["State"].isin(effective_state_filter) &
-    df["Department"].isin(effective_department_filter) &
+    (df["State"].isin(effective_state_filter)) &
+    (df["Department"].isin(effective_department_filter)) &
     petition_filter &
-    df["Signatures"].between(effective_min_signatures, effective_max_signatures)]
+    (df["Signatures"].between(effective_min_signatures, effective_max_signatures))
+]
+
+# Add time difference columns
+filtered_df["Created → Opened, days"] = filtered_df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
+filtered_df["Opened → Resp Threshold, days"] = filtered_df.apply(lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
+filtered_df["Resp Threshold → Response, days"] = filtered_df.apply(lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
+filtered_df["Opened → Debate Threshold, days"] = filtered_df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
+filtered_df["Debate Threshold → Scheduled, days"] = filtered_df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
+filtered_df["Scheduled → Outcome, days"] = filtered_df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
@@ -303,7 +327,18 @@ with tab1:
         df_display = df_display.drop(columns=["Petition_text"])
 
     html_table = df_display.to_html(escape=False, index=False)
-    signatures_col_index = df_display.columns.get_loc("Signatures") + 1
+
+    # Get index positions (1-based) of the columns to right-align
+    right_align_cols = [
+        "Signatures",
+        "Created → Opened, days",
+        "Opened → Resp Threshold, days",
+        "Resp Threshold → Response, days",
+        "Opened → Debate Threshold, days",
+        "Debate Threshold → Scheduled, days",
+        "Scheduled → Outcome, days"
+    ]
+    right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
 
     css = f"""
     <style>
@@ -313,7 +348,7 @@ with tab1:
             border: 1px solid #ddd;
         }}
         table {{
-            width: 100%;
+            width: max-content;
             border-collapse: collapse;
             table-layout: fixed;
         }}
@@ -337,17 +372,34 @@ with tab1:
             word-wrap: break-word;
             white-space: normal;
             overflow-wrap: break-word;
+            min-width: 150px;
         }}
-        table th:nth-child({signatures_col_index}), table td:nth-child({signatures_col_index}) {{
-            text-align: right !important;
-        }}
-        table td:nth-child(1), table td:nth-child(12) {{
+    """ + "\n".join([
+        f"table th:nth-child({i}), table td:nth-child({i}) {{ text-align: right !important; }}"
+        for i in right_align_indices
+    ]) + """
+        table td:nth-child(1), table td:nth-child(12) {
             max-width: 250px;
-        }}
-        table td span[title] {{
+        }
+        /* First column sticky */
+        table th:nth-child(1), table td:nth-child(1) {
+            position: sticky;
+            left: 0;
+            background: #0e1117;
+            z-index: 3;
+        }
+        /* Top-left cell (both row and column header) */
+        table thead th:nth-child(1) {
+            position: sticky;
+            top: 0;
+            left: 0;
+            background: #0e1117;
+            z-index: 5;
+        }
+        table td span[title] {
             cursor: help;
             border-bottom: 1px dotted #999;
-        }}
+        }
     </style>
     """
 
