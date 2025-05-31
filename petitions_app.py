@@ -7,21 +7,6 @@ import altair as alt
 st.set_page_config(layout="wide")
 
 @st.cache_data(show_spinner=True)
-def days_between(start_date, end_date):
-    start = pd.to_datetime(start_date, errors='coerce')
-    end = pd.to_datetime(end_date, errors='coerce')
-
-    if pd.isna(start) or pd.isna(end):
-        return None
-
-    if start.tz is not None:
-        start = start.tz_convert(None)
-    if end.tz is not None:
-        end = end.tz_convert(None)
-
-    diff = (end - start).days
-    return int(diff) if diff >= 0 else None
-
 def fetch_petitions():
     all_rows = []
     page = 1
@@ -97,10 +82,25 @@ def avg_days_between(df, start_col, end_col):
     diffs = (end_dates - start_dates).dt.days.dropna()
     return int(diffs.mean()) if len(diffs) > 0 else None
 
+def days_between(start_date, end_date):
+    start = pd.to_datetime(start_date, errors='coerce')
+    end = pd.to_datetime(end_date, errors='coerce')
+
+    if pd.isna(start) or pd.isna(end):
+        return None
+
+    if start.tz is not None:
+        start = start.tz_convert(None)
+    if end.tz is not None:
+        end = end.tz_convert(None)
+
+    diff = (end - start).days
+    return int(diff) if diff >= 0 else None
+
 st.title("UK Parliament Petitions Viewer")
 
 if st.button("⟳ Refresh Data"):
-    fetch_petitions.clear()
+    fetch_petitions.clear_cache()
     st.rerun()
 
 with st.spinner("Fetching petitions..."):
@@ -109,19 +109,6 @@ with st.spinner("Fetching petitions..."):
 if df.empty:
     st.error("No petition data found. Please refresh or check API availability.")
     st.stop()
-
-# Add time difference columns
-df["Created → Opened, days"] = df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
-df["Opened → Resp Threshold, days"] = df.apply(
-        lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
-df["Resp Threshold → Response, days"] = df.apply(
-        lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
-df["Opened → Debate Threshold, days"] = df.apply(
-        lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
-df["Debate Threshold → Scheduled, days"] = df.apply(
-        lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
-df["Scheduled → Outcome, days"] = df.apply(
-        lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
 with st.sidebar:
     st.subheader("Filters")
@@ -339,6 +326,7 @@ with tab1:
 
     # Get index positions (1-based) of the columns to right-align
     right_align_cols = [
+        "Signatures",
         "Created → Opened, days",
         "Opened → Resp Threshold, days",
         "Resp Threshold → Response, days",
