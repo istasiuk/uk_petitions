@@ -95,11 +95,8 @@ if st.button("⟳ Refresh Data"):
     fetch_petitions.clear()
     st.rerun()
 
-if "df" not in st.session_state:
-    with st.spinner("Fetching petitions..."):
-        st.session_state.df = fetch_petitions()
-
-df = st.session_state.df
+with st.spinner("Fetching petitions..."):
+    df = fetch_petitions()
 
 if df.empty:
     st.error("No petition data found. Please refresh or check API availability.")
