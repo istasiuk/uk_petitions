@@ -331,17 +331,17 @@ with tab1:
 
     css = f"""
     <style>
-        div.dataframe-wrapper {
+        div.dataframe-wrapper {{
             max-height: 600px;
-            overflow: auto;
+            overflow-y: auto;
             border: 1px solid #ddd;
-        }
-        table {
+        }}
+        table {{
             width: max-content;
             border-collapse: collapse;
             table-layout: fixed;
-        }
-        thead th {
+        }}
+        thead th {{
             position: sticky;
             top: 0;
             background: #0e1117;
@@ -352,8 +352,8 @@ with tab1:
             border: 1px solid #ddd;
             font-weight: bold;
             box-shadow: inset 0 -1px 0 #ccc, 0 2px 5px rgba(0,0,0,0.1);
-        }
-        table th, table td {
+        }}
+        table th, table td {{
             text-align: left !important;
             padding: 6px 8px;
             border: 1px solid #ddd;
@@ -362,17 +362,23 @@ with tab1:
             white-space: normal;
             overflow-wrap: break-word;
             min-width: 150px;
-        }
-        table th:nth-child(1), table td:nth-child(1) {
+        }}
+        table th:nth-child({signatures_col_index}), table td:nth-child({signatures_col_index}) {{
+            text-align: right !important;
+        }}
+        table td:nth-child(1), table td:nth-child(12) {{
+            max-width: 250px;
+        }}
+        table th:nth-child(1), table td:nth-child(1) {{
             position: sticky;
             left: 0;
             background: #0e1117;
             z-index: 3;
-        }
-        table td span[title] {
+        }}
+        table td span[title] {{
             cursor: help;
             border-bottom: 1px dotted #999;
-        }
+        }}
     </style>
     """
 
