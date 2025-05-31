@@ -349,8 +349,6 @@ with tab1:
     df_display["Response"] = df_display["Response"].apply(add_tooltip)
     df_display = df_display.fillna("")
 
-    print(df_display[right_align_cols].dtypes)
-
     if "Petition_text" in df_display.columns:
         df_display = df_display.drop(columns=["Petition_text"])
 
