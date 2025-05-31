@@ -318,6 +318,8 @@ with tab1:
             st.session_state.page = total_pages
             st.rerun()
 
+    df_display = paged_df.copy()
+
     # Get index positions (1-based) of the columns to right-align
     right_align_cols = [
         "Signatures",
@@ -329,17 +331,12 @@ with tab1:
         "Scheduled → Outcome, days"
     ]
 
-    df_display = paged_df.copy()
-
     # Format numeric columns: truncate float to int, format with commas, empty if NaN
     for col in right_align_cols:
         if col in df_display.columns:
             df_display[col] = df_display[col].apply(
                 lambda x: "{:,}".format(int(x)) if pd.notna(x) else ""
             )
-
-    # Get index positions (1-based for streamlit styling)
-    right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
 
     df_display["Response"] = df_display["Response"].apply(add_tooltip)
     df_display = df_display.fillna("")
@@ -348,6 +345,8 @@ with tab1:
         df_display = df_display.drop(columns=["Petition_text"])
 
     html_table = df_display.to_html(escape=False, index=False)
+
+    right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
 
     css = f"""
     <style>
