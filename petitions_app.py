@@ -321,7 +321,9 @@ with tab1:
     df_display = paged_df.copy()
     df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
     df_display["Response"] = df_display["Response"].apply(add_tooltip)
-    df_display = df_display.fillna("")
+    df_display = df_display.fillna(
+        {col: "" if df_display[col].dtype in ["object", "string"] else 0 for col in df_display.columns}
+    )
 
     if "Petition_text" in df_display.columns:
         df_display = df_display.drop(columns=["Petition_text"])
