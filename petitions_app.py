@@ -338,6 +338,11 @@ with tab1:
                 lambda x: "{:,}".format(int(x)) if pd.notna(x) else ""
             )
 
+    # Coerce these columns to numeric (int) before formatting
+    for col in right_align_cols:
+        if col in df_display.columns:
+            df_display[col] = pd.to_numeric(df_display[col], errors='coerce').astype('Int64')
+
     df_display["Response"] = df_display["Response"].apply(add_tooltip)
     df_display = df_display.fillna("")
 
