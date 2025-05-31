@@ -99,9 +99,21 @@ def avg_days_between(df, start_col, end_col):
 
 st.title("UK Parliament Petitions Viewer")
 
-if st.button("⟳ Refresh Data"):
-    fetch_petitions.clear()
-    st.rerun()
+col_refresh, col_download = st.columns([1, 1])
+
+with col_refresh:
+    if st.button("⟳ Refresh Data"):
+        fetch_petitions.clear()
+        st.experimental_rerun()
+
+with col_download:
+    csv_data = filtered_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download CSV",
+        data=csv_data,
+        file_name="uk_parliament_petitions.csv",
+        mime="text/csv"
+    )
 
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
