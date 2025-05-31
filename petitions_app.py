@@ -53,6 +53,21 @@ def fetch_petitions():
 
     df = pd.DataFrame(all_rows)
 
+    def days_between(start_date, end_date):
+        start = pd.to_datetime(start_date, errors='coerce')
+        end = pd.to_datetime(end_date, errors='coerce')
+
+        if pd.isna(start) or pd.isna(end):
+            return None
+
+        if start.tz is not None:
+            start = start.tz_convert(None)
+        if end.tz is not None:
+            end = end.tz_convert(None)
+
+        diff = (end - start).days
+        return int(diff) if diff >= 0 else None
+
     # Calculate the days-between columns here
     df["Created → Opened, days"] = df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
     df["Opened → Resp Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
@@ -82,21 +97,6 @@ def avg_days_between(df, start_col, end_col):
     diffs = (end_dates - start_dates).dt.days.dropna()
     return int(diffs.mean()) if len(diffs) > 0 else None
 
-def days_between(start_date, end_date):
-    start = pd.to_datetime(start_date, errors='coerce')
-    end = pd.to_datetime(end_date, errors='coerce')
-
-    if pd.isna(start) or pd.isna(end):
-        return None
-
-    if start.tz is not None:
-        start = start.tz_convert(None)
-    if end.tz is not None:
-        end = end.tz_convert(None)
-
-    diff = (end - start).days
-    return int(diff) if diff >= 0 else None
-
 st.title("UK Parliament Petitions Viewer")
 
 if st.button("⟳ Refresh Data"):
@@ -109,6 +109,12 @@ with st.spinner("Fetching petitions..."):
 if df.empty:
     st.error("No petition data found. Please refresh or check API availability.")
     st.stop()
+
+# Initialize session state for page number if not set
+if "page" not in st.session_state:
+    st.session_state.page = 1
+if "page_input" not in st.session_state:
+    st.session_state.page_input = "1"
 
 with st.sidebar:
     st.subheader("Filters")
@@ -239,11 +245,14 @@ tab1, tab2 = st.tabs(["Petition List", "Statistics"])
 
 # Tab 1: Table only
 with tab1:
+    ITEMS_PER_PAGE = 50
+    total_items = len(filtered_df)
+    total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
+
     def set_page(page_num: int):
         if 1 <= page_num <= total_pages and st.session_state.page != page_num:
             st.session_state.page = page_num
             st.session_state.page_input = str(page_num)
-
 
     def on_page_input_change():
         try:
@@ -252,16 +261,6 @@ with tab1:
         except ValueError:
             # reset input to current page if invalid
             st.session_state.page_input = str(st.session_state.page)
-
-
-    if "page" not in st.session_state:
-        st.session_state.page = 1
-    if "page_input" not in st.session_state:
-        st.session_state.page_input = str(st.session_state.page)
-
-    ITEMS_PER_PAGE = 50
-    total_items = len(filtered_df)
-    total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
 
     sorted_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
     start_idx = (st.session_state.page - 1) * ITEMS_PER_PAGE
@@ -287,12 +286,10 @@ with tab1:
     with pagination_cols[1]:
         if st.button("⏮ First"):
             set_page(1)
-            st.rerun()
 
     with pagination_cols[2]:
         if st.button("◀ Prev"):
             set_page(max(1, st.session_state.page - 1))
-            st.rerun()
 
     with pagination_cols[3]:
         col1, col2, col3 = st.columns([2, 1, 2])
@@ -313,12 +310,10 @@ with tab1:
     with pagination_cols[4]:
         if st.button("Next ▶"):
             set_page(min(total_pages, st.session_state.page + 1))
-            st.rerun()
 
     with pagination_cols[5]:
         if st.button("Last ⏭"):
             set_page(total_pages)
-            st.rerun()
 
     df_display = paged_df.copy()
     df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
