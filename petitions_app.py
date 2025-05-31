@@ -239,8 +239,25 @@ tab1, tab2 = st.tabs(["Petition List", "Statistics"])
 
 # Tab 1: Table only
 with tab1:
+    def set_page(page_num: int):
+        if 1 <= page_num <= total_pages and st.session_state.page != page_num:
+            st.session_state.page = page_num
+            st.session_state.page_input = str(page_num)
+
+
+    def on_page_input_change():
+        try:
+            input_page = int(st.session_state.page_input)
+            set_page(input_page)
+        except ValueError:
+            # reset input to current page if invalid
+            st.session_state.page_input = str(st.session_state.page)
+
+
     if "page" not in st.session_state:
         st.session_state.page = 1
+    if "page_input" not in st.session_state:
+        st.session_state.page_input = str(st.session_state.page)
 
     ITEMS_PER_PAGE = 50
     total_items = len(filtered_df)
@@ -262,58 +279,42 @@ with tab1:
 
     st.markdown('<div style="margin-top: 30px;"></div>', unsafe_allow_html=True)
 
-    # Add empty space at the beginning to push to the right
     pagination_cols = st.columns([10, 1, 1, 2, 1, 1])
 
-    # Empty spacer
     with pagination_cols[0]:
         pass
 
-    # ⏮ First
     with pagination_cols[1]:
         if st.button("⏮ First"):
-            st.session_state.page = 1
+            set_page(1)
 
-    # ◀ Prev
     with pagination_cols[2]:
-        if st.button("◀ Prev") and st.session_state.page > 1:
-            st.session_state.page -= 1
+        if st.button("◀ Prev"):
+            set_page(max(1, st.session_state.page - 1))
 
-    # [ Page input ] of [ total pages ]
     with pagination_cols[3]:
         col1, col2, col3 = st.columns([2, 1, 2])
         with col1:
-            page_input = st.text_input(
-                "", str(st.session_state.page),
+            st.text_input(
+                "",
+                value=st.session_state.page_input,
                 key="page_input",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                on_change=on_page_input_change
             )
         with col2:
             st.markdown("<div style='padding-top: 0.45rem;'>of</div>", unsafe_allow_html=True)
         with col3:
-            st.markdown(
-                f"<div style='padding-top: 0.45rem;'><strong>{total_pages}</strong></div>",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div style='padding-top: 0.45rem;'><strong>{total_pages}</strong></div>",
+                        unsafe_allow_html=True)
 
-        try:
-            input_page = int(page_input)
-            if 1 <= input_page <= total_pages:
-                if st.session_state.page != input_page:
-                    st.session_state.page = input_page
-            else:
-                st.warning(f"Page must be between 1 and {total_pages}")
-        except ValueError:
-            st.warning("Enter a valid page number")
-    # Next ▶
     with pagination_cols[4]:
-        if st.button("Next ▶") and st.session_state.page < total_pages:
-            st.session_state.page += 1
+        if st.button("Next ▶"):
+            set_page(min(total_pages, st.session_state.page + 1))
 
-    # Last ⏭
     with pagination_cols[5]:
         if st.button("Last ⏭"):
-            st.session_state.page = total_pages
+            set_page(total_pages)
 
     df_display = paged_df.copy()
     df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
