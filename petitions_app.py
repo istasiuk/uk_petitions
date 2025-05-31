@@ -339,7 +339,15 @@ with tab1:
 
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
 
-    html_table = df_display.to_html(escape=False, index=False)
+    df_display_for_html = df_display.copy()
+
+    for col in right_align_cols:
+        if col in df_display_for_html.columns:
+            df_display_for_html[col] = df_display_for_html[col].apply(
+                lambda x: f"{int(x):,}" if pd.notnull(x) else ""
+            )
+
+    html_table = df_display_for_html.to_html(escape=False, index=False)
 
     css = f"""
     <style>
