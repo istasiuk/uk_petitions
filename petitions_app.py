@@ -381,11 +381,20 @@ with tab1:
         table td:nth-child(1), table td:nth-child(12) {
             max-width: 250px;
         }
+        /* First column sticky */
         table th:nth-child(1), table td:nth-child(1) {
             position: sticky;
             left: 0;
             background: #0e1117;
             z-index: 3;
+        }
+        /* Top-left cell (both row and column header) */
+        table thead th:nth-child(1) {
+            position: sticky;
+            top: 0;
+            left: 0;
+            background: #0e1117;
+            z-index: 5;
         }
         table td span[title] {
             cursor: help;
