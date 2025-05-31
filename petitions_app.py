@@ -337,7 +337,7 @@ with tab1:
             border: 1px solid #ddd;
         }}
         table {{
-            width: 100%;
+            width: max-content;
             border-collapse: collapse;
             table-layout: fixed;
         }}
@@ -361,17 +361,34 @@ with tab1:
             word-wrap: break-word;
             white-space: normal;
             overflow-wrap: break-word;
+            min-width: 150px;
         }}
-        table th:nth-child({signatures_col_index}), table td:nth-child({signatures_col_index}) {{
-            text-align: right !important;
-        }}
-        table td:nth-child(1), table td:nth-child(12) {{
+    """ + "\n".join([
+        f"table th:nth-child({i}), table td:nth-child({i}) {{ text-align: right !important; }}"
+        for i in right_align_indices
+    ]) + """
+        table td:nth-child(1), table td:nth-child(12) {
             max-width: 250px;
-        }}
-        table td span[title] {{
+        }
+        /* First column sticky */
+        table th:nth-child(1), table td:nth-child(1) {
+            position: sticky;
+            left: 0;
+            background: #0e1117;
+            z-index: 3;
+        }
+        /* Top-left cell (both row and column header) */
+        table thead th:nth-child(1) {
+            position: sticky;
+            top: 0;
+            left: 0;
+            background: #0e1117;
+            z-index: 5;
+        }
+        table td span[title] {
             cursor: help;
             border-bottom: 1px dotted #999;
-        }}
+        }
     </style>
     """
 
@@ -387,7 +404,6 @@ with tab1:
         """,
         unsafe_allow_html=True
     )
-
 
 with tab2:
     st.subheader("Top Petitions by Signatures")
