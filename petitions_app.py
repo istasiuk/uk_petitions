@@ -334,7 +334,9 @@ with tab1:
         df_display[col] = df_display[col].astype("Int64")
 
     df_display["Response"] = df_display["Response"].apply(add_tooltip)
-    df_display = df_display.fillna("")
+
+    str_cols = df_display.select_dtypes(include="object").columns
+    df_display[str_cols] = df_display[str_cols].fillna("")
 
     if "Petition_text" in df_display.columns:
         df_display = df_display.drop(columns=["Petition_text"])
