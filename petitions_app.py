@@ -212,7 +212,7 @@ filtered_df = df[
     petition_filter &
     df["Signatures"].between(effective_min_signatures, effective_max_signatures)]
 
-col_refresh, col_download = st.columns([1, 1])
+col_refresh, col_download, col_empty = st.columns([1, 1, 10])
 
 with col_refresh:
     if st.button("⟳ Refresh Data"):
@@ -227,6 +227,9 @@ with col_download:
         file_name="uk_parliament_petitions.csv",
         mime="text/csv"
     )
+
+with col_empty:
+    pass
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
