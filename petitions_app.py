@@ -99,22 +99,6 @@ def avg_days_between(df, start_col, end_col):
 
 st.title("UK Parliament Petitions Viewer")
 
-col_refresh, col_download = st.columns([1, 1])
-
-with col_refresh:
-    if st.button("⟳ Refresh Data"):
-        fetch_petitions.clear()
-        st.experimental_rerun()
-
-with col_download:
-    csv_data = filtered_df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="Download CSV",
-        data=csv_data,
-        file_name="uk_parliament_petitions.csv",
-        mime="text/csv"
-    )
-
 with st.spinner("Fetching petitions..."):
     df = fetch_petitions()
 
@@ -227,6 +211,22 @@ filtered_df = df[
     df["Department"].isin(effective_department_filter) &
     petition_filter &
     df["Signatures"].between(effective_min_signatures, effective_max_signatures)]
+
+col_refresh, col_download = st.columns([1, 1])
+
+with col_refresh:
+    if st.button("⟳ Refresh Data"):
+        fetch_petitions.clear()
+        st.experimental_rerun()
+
+with col_download:
+    csv_data = filtered_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download CSV",
+        data=csv_data,
+        file_name="uk_parliament_petitions.csv",
+        mime="text/csv"
+    )
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
