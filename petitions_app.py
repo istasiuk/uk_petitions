@@ -327,7 +327,18 @@ with tab1:
         df_display = df_display.drop(columns=["Petition_text"])
 
     html_table = df_display.to_html(escape=False, index=False)
-    signatures_col_index = df_display.columns.get_loc("Signatures") + 1
+
+    # Get index positions (1-based) of the columns to right-align
+    right_align_cols = [
+        "Signatures",
+        "Created → Opened, days",
+        "Opened → Resp Threshold, days",
+        "Resp Threshold → Response, days",
+        "Opened → Debate Threshold, days",
+        "Debate Threshold → Scheduled, days",
+        "Scheduled → Outcome, days"
+    ]
+    right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
 
     css = f"""
     <style>
@@ -363,9 +374,10 @@ with tab1:
             overflow-wrap: break-word;
             min-width: 150px;
         }}
-        table th:nth-child({signatures_col_index}), table td:nth-child({signatures_col_index}) {{
-            text-align: right !important;
-        }}
+        """ + "\n".join([
+            f"table th:nth-child({i}), table td:nth-child({i}) {{ text-align: right !important; }}"
+            for i in right_align_indices
+        ]) + """
         table td:nth-child(1), table td:nth-child(12) {{
             max-width: 250px;
         }}
