@@ -341,11 +341,20 @@ with tab1:
 
     df_display_for_html = df_display.copy()
 
+
+    def safe_int_format(x):
+        if pd.isnull(x):
+            return ""
+        try:
+            # Round before int conversion to avoid errors on floats
+            return f"{int(round(float(x))):,}"
+        except Exception:
+            # fallback: just return original as string
+            return str(x)
+
     for col in right_align_cols:
         if col in df_display_for_html.columns:
-            df_display_for_html[col] = df_display_for_html[col].apply(
-                lambda x: f"{int(x):,}" if pd.notnull(x) else ""
-            )
+            df_display_for_html[col] = df_display_for_html[col].apply(safe_int_format)
 
     html_table = df_display_for_html.to_html(escape=False, index=False)
 
