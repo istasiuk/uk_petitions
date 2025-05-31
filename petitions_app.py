@@ -374,10 +374,10 @@ with tab1:
             overflow-wrap: break-word;
             min-width: 150px;
         }}
-        """ + "\n".join([
-            f"table th:nth-child({i}), table td:nth-child({i}) {{ text-align: right !important; }}"
-            for i in right_align_indices
-        ]) + """
+    """ + "\n".join([
+        f"table th:nth-child({i}), table td:nth-child({i}) {{ text-align: right !important; }}"
+        for i in right_align_indices
+    ]) + """
         table td:nth-child(1), table td:nth-child(12) {{
             max-width: 250px;
         }}
