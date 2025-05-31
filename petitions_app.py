@@ -74,11 +74,10 @@ def avg_days_between(df, start_col, end_col):
     return int(diffs.mean()) if len(diffs) > 0 else None
 
 def days_between(start, end):
-    """Return number of days between two dates, or None if either is invalid."""
     try:
         start_date = pd.to_datetime(start, errors='coerce')
         end_date = pd.to_datetime(end, errors='coerce')
-        if pd.isnull(start_date) or pd.isnull(end_date):
+        if pd.isna(start_date) or pd.isna(end_date):
             return None
         return (end_date - start_date).days
     except Exception:
