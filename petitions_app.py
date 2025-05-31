@@ -413,13 +413,25 @@ with tab1:
         f"table th:nth-child({i}), table td:nth-child({i}) {{ text-align: right !important; }}"
         for i in right_align_indices
     ]) + """
-        table td:nth-child(2), table td:nth-child(3), table td:nth-child(4),
-         table td:nth-child(5), table td:nth-child(6), table td:nth-child(7),
-         table td:nth-child(8), table td:nth-child(9), table td:nth-child(10) 
-         table td:nth-child(11), table td:nth-child(13), table td:nth-child(14) 
-         table td:nth-child(15), table td:nth-child(17), table td:nth-child(18)
-         table td:nth-child(19), table td:nth-child(20), table td:nth-child(21),
-         table td:nth-child(22) {
+        table td:nth-child(2),
+        table td:nth-child(3),
+        table td:nth-child(4),
+        table td:nth-child(5),
+        table td:nth-child(6),
+        table td:nth-child(7),
+        table td:nth-child(8),
+        table td:nth-child(9),
+        table td:nth-child(10),
+        table td:nth-child(11),
+        table td:nth-child(13),
+        table td:nth-child(14),
+        table td:nth-child(15),
+        table td:nth-child(17),
+        table td:nth-child(18),
+        table td:nth-child(19),
+        table td:nth-child(20),
+        table td:nth-child(21),
+        table td:nth-child(22) {
             max-width: 100px;
         }
         table td:nth-child(1), table td:nth-child(12), table td:nth-child(16) {
