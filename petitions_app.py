@@ -328,25 +328,11 @@ with tab1:
             st.session_state.page = total_pages
             st.rerun()
 
-
-    def display_fillna(df):
-        df_display = df.copy()
-
-        # For string/object columns, fillna with ""
-        for col in df_display.select_dtypes(include=["object", "string"]).columns:
-            df_display[col] = df_display[col].fillna("")
-
-        # For numeric columns, keep NaN but format as "-" when displaying
-        # We do this by converting to string only for display purposes
-        for col in df_display.select_dtypes(include=["number"]).columns:
-            df_display[col] = df_display[col].apply(lambda x: "" if pd.isna(x) else x)
-
-        return df_display
-
     df_display = paged_df.copy()
     df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
     df_display["Response"] = df_display["Response"].apply(add_tooltip)
-    df_display = display_fillna(df_display)
+    df_display.loc[:, df_display.select_dtypes(include=["object", "string"]).columns] = \
+        df_display.select_dtypes(include=["object", "string"]).fillna("")
 
     if "Petition_text" in df_display.columns:
         df_display = df_display.drop(columns=["Petition_text"])
