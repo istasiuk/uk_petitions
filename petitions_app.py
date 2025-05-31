@@ -331,15 +331,25 @@ with tab1:
         "Scheduled → Outcome, days"
     ]
 
-    # Format numeric columns: truncate float to int, format with commas, empty if NaN
+
+    def format_num_str(x):
+        try:
+            # Try to convert string to float
+            num = float(x)
+            # Convert to int and format with commas
+            return "{:,}".format(int(num))
+        except (ValueError, TypeError):
+            # If conversion fails or x is empty/None
+            return ""
+
     for col in right_align_cols:
         if col in df_display.columns:
-            df_display[col] = df_display[col].apply(
-                lambda x: "{:,}".format(int(float(x))) if pd.notna(x) else ""
-            )
+            df_display[col] = df_display[col].apply(format_num_str)
 
     df_display["Response"] = df_display["Response"].apply(add_tooltip)
     df_display = df_display.fillna("")
+
+    print(df_display[right_align_cols].dtypes)
 
     if "Petition_text" in df_display.columns:
         df_display = df_display.drop(columns=["Petition_text"])
