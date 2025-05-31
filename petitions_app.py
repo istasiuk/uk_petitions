@@ -330,7 +330,6 @@ with tab1:
 
     # Get index positions (1-based) of the columns to right-align
     right_align_cols = [
-        "Signatures",
         "Created → Opened, days",
         "Opened → Resp Threshold, days",
         "Resp Threshold → Response, days",
@@ -338,6 +337,9 @@ with tab1:
         "Debate Threshold → Scheduled, days",
         "Scheduled → Outcome, days"
     ]
+    for col in right_align_cols:
+        if col in df_display.columns:
+            df_display[col] = df_display[col].apply(lambda x: f"{int(x)}" if pd.notnull(x) else "")
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
 
     css = f"""
