@@ -374,19 +374,23 @@ with tab1:
             overflow-wrap: break-word;
             min-width: 150px;
         }}
-        table td:nth-child(1), table td:nth-child(12) {{
+    """ + "\n".join([
+        f"table th:nth-child({i}), table td:nth-child({i}) {{ text-align: right !important; }}"
+        for i in right_align_indices
+    ]) + """
+        table td:nth-child(1), table td:nth-child(12) {
             max-width: 250px;
-        }}
-        table th:nth-child(1), table td:nth-child(1) {{
+        }
+        table th:nth-child(1), table td:nth-child(1) {
             position: sticky;
             left: 0;
             background: #0e1117;
             z-index: 3;
-        }}
-        table td span[title] {{
+        }
+        table td span[title] {
             cursor: help;
             border-bottom: 1px dotted #999;
-        }}
+        }
     </style>
     """
 
