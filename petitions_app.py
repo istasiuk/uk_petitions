@@ -52,6 +52,30 @@ def fetch_petitions():
         page += 1
 
     df = pd.DataFrame(all_rows)
+
+    def days_between(start_date, end_date):
+        start = pd.to_datetime(start_date, errors='coerce')
+        end = pd.to_datetime(end_date, errors='coerce')
+
+        if pd.isna(start) or pd.isna(end):
+            return None
+
+        if start.tz is not None:
+            start = start.tz_convert(None)
+        if end.tz is not None:
+            end = end.tz_convert(None)
+
+        diff = (end - start).days
+        return int(diff) if diff >= 0 else None
+
+    # Calculate the days-between columns here
+    df["Created → Opened, days"] = df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
+    df["Opened → Resp Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
+    df["Resp Threshold → Response, days"] = df.apply(lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
+    df["Opened → Debate Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
+    df["Debate Threshold → Scheduled, days"] = df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
+    df["Scheduled → Outcome, days"] = df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
+
     return df
 
 def add_tooltip(text, max_len=50):
@@ -73,25 +97,10 @@ def avg_days_between(df, start_col, end_col):
     diffs = (end_dates - start_dates).dt.days.dropna()
     return int(diffs.mean()) if len(diffs) > 0 else None
 
-def days_between(start_date, end_date):
-    start = pd.to_datetime(start_date, errors='coerce')
-    end = pd.to_datetime(end_date, errors='coerce')
-
-    if pd.isna(start) or pd.isna(end):
-        return None
-
-    if start.tz is not None:
-        start = start.tz_convert(None)
-    if end.tz is not None:
-        end = end.tz_convert(None)
-
-    diff = (end - start).days
-    return int(diff) if diff >= 0 else None
-
 st.title("UK Parliament Petitions Viewer")
 
 if st.button("⟳ Refresh Data"):
-    fetch_petitions.clear()
+    fetch_petitions.clear_cache()
     st.rerun()
 
 with st.spinner("Fetching petitions..."):
@@ -100,6 +109,12 @@ with st.spinner("Fetching petitions..."):
 if df.empty:
     st.error("No petition data found. Please refresh or check API availability.")
     st.stop()
+
+# Initialize session state for page number if not set
+if "page" not in st.session_state:
+    st.session_state.page = 1
+if "page_input" not in st.session_state:
+    st.session_state.page_input = "1"
 
 with st.sidebar:
     st.subheader("Filters")
@@ -174,6 +189,7 @@ with st.sidebar:
     # Custom column list for dropdown (hide "Petition_text", show "Petition" instead)
     sort_columns_display = ["Petition" if col == "Petition_text" else col for col in df.columns if
                             col != "Petition_text"]
+
     sort_column_display = st.selectbox("Column:", options=sort_columns_display, index=sort_columns_display.index(
         "Signatures") if "Signatures" in sort_columns_display else 0)
 
@@ -208,14 +224,6 @@ filtered_df = df[
     (df["Signatures"].between(effective_min_signatures, effective_max_signatures))
 ]
 
-# Add time difference columns
-filtered_df["Created → Opened, days"] = filtered_df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
-filtered_df["Opened → Resp Threshold, days"] = filtered_df.apply(lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
-filtered_df["Resp Threshold → Response, days"] = filtered_df.apply(lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
-filtered_df["Opened → Debate Threshold, days"] = filtered_df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
-filtered_df["Debate Threshold → Scheduled, days"] = filtered_df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
-filtered_df["Scheduled → Outcome, days"] = filtered_df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
-
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
@@ -237,12 +245,22 @@ tab1, tab2 = st.tabs(["Petition List", "Statistics"])
 
 # Tab 1: Table only
 with tab1:
-    if "page" not in st.session_state:
-        st.session_state.page = 1
-
     ITEMS_PER_PAGE = 50
     total_items = len(filtered_df)
     total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
+
+    def set_page(page_num: int):
+        if 1 <= page_num <= total_pages and st.session_state.page != page_num:
+            st.session_state.page = page_num
+            st.session_state.page_input = str(page_num)
+
+    def on_page_input_change():
+        try:
+            input_page = int(st.session_state.page_input)
+            set_page(input_page)
+        except ValueError:
+            # reset input to current page if invalid
+            st.session_state.page_input = str(st.session_state.page)
 
     sorted_df = filtered_df.sort_values(by=sort_column, ascending=sort_ascending).reset_index(drop=True)
     start_idx = (st.session_state.page - 1) * ITEMS_PER_PAGE
@@ -260,73 +278,51 @@ with tab1:
 
     st.markdown('<div style="margin-top: 30px;"></div>', unsafe_allow_html=True)
 
-    # Add empty space at the beginning to push to the right
     pagination_cols = st.columns([10, 1, 1, 2, 1, 1])
 
-    # Empty spacer
     with pagination_cols[0]:
         pass
 
-    # ⏮ First
     with pagination_cols[1]:
         if st.button("⏮ First"):
-            st.session_state.page = 1
-            st.rerun()
+            set_page(1)
 
-    # ◀ Prev
     with pagination_cols[2]:
-        if st.button("◀ Prev") and st.session_state.page > 1:
-            st.session_state.page -= 1
-            st.rerun()
+        if st.button("◀ Prev"):
+            set_page(max(1, st.session_state.page - 1))
 
-    # [ Page input ] of [ total pages ]
     with pagination_cols[3]:
         col1, col2, col3 = st.columns([2, 1, 2])
         with col1:
-            page_input = st.text_input(
-                "", str(st.session_state.page),
+            st.text_input(
+                "",
+                value=st.session_state.page_input,
                 key="page_input",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                on_change=on_page_input_change
             )
         with col2:
             st.markdown("<div style='padding-top: 0.45rem;'>of</div>", unsafe_allow_html=True)
         with col3:
-            st.markdown(
-                f"<div style='padding-top: 0.45rem;'><strong>{total_pages}</strong></div>",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div style='padding-top: 0.45rem;'><strong>{total_pages}</strong></div>",
+                        unsafe_allow_html=True)
 
-        try:
-            input_page = int(page_input)
-            if 1 <= input_page <= total_pages:
-                if st.session_state.page != input_page:
-                    st.session_state.page = input_page
-                    st.rerun()  # Rerun after page change
-            else:
-                st.warning(f"Page must be between 1 and {total_pages}")
-        except ValueError:
-            st.warning("Enter a valid page number")
-    # Next ▶
     with pagination_cols[4]:
-        if st.button("Next ▶") and st.session_state.page < total_pages:
-            st.session_state.page += 1
-            st.rerun()
+        if st.button("Next ▶"):
+            set_page(min(total_pages, st.session_state.page + 1))
 
-    # Last ⏭
     with pagination_cols[5]:
         if st.button("Last ⏭"):
-            st.session_state.page = total_pages
-            st.rerun()
+            set_page(total_pages)
 
     df_display = paged_df.copy()
     df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
     df_display["Response"] = df_display["Response"].apply(add_tooltip)
-    df_display = df_display.fillna("")
+    df_display.loc[:, df_display.select_dtypes(include=["object", "string"]).columns] = \
+        df_display.select_dtypes(include=["object", "string"]).fillna("")
 
     if "Petition_text" in df_display.columns:
         df_display = df_display.drop(columns=["Petition_text"])
-
-    html_table = df_display.to_html(escape=False, index=False)
 
     # Get index positions (1-based) of the columns to right-align
     right_align_cols = [
@@ -338,7 +334,18 @@ with tab1:
         "Debate Threshold → Scheduled, days",
         "Scheduled → Outcome, days"
     ]
+
+    # Format all "→ days" columns to display as integers (no decimals)
+    for col in right_align_cols:
+        if col in df_display.columns:
+            df_display[col] = df_display[col].apply(lambda x: f"{int(x)}" if pd.notnull(x) else "")
+
+            right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if
+                                   col in df_display.columns]
+
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
+
+    html_table = df_display.to_html(escape=False, index=False)
 
     css = f"""
     <style>
