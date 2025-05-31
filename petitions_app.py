@@ -80,9 +80,10 @@ def days_between(start_date, end_date):
     if pd.isna(start) or pd.isna(end):
         return None
 
-    if start.tzinfo is not None:
+    # Remove timezone info if present
+    if start.tz is not None:
         start = start.tz_convert(None)
-    if end.tzinfo is not None:
+    if end.tz is not None:
         end = end.tz_convert(None)
 
     diff = (end - start).days
