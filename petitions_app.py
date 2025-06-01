@@ -229,11 +229,15 @@ filtered_df = df[
 if "last_refreshed" not in st.session_state:
     st.session_state.last_refreshed = datetime.now()
 
-col_last_updated, col_refresh, col_download, col_empty = st.columns([2, 1, 1, 8])
+col_last_updated, col_refresh, col_download, col_empty = st.columns([3, 1, 1, 7])
 
 with col_last_updated:
     last_updated_plus_one = st.session_state.last_refreshed + timedelta(hours=1)
-    st.markdown(f"**Last Updated:** {last_updated_plus_one.strftime('%Y-%m-%d %H:%M:%S')}")
+    st.markdown(
+        f"**Last Updated:** {last_updated_plus_one.strftime('%Y-%m-%d %H:%M:%S')}<br>"
+        "This app automatically refreshes every hour at **HH:00:00**",
+        unsafe_allow_html=True
+    )
 
 with col_refresh:
     if st.button("⟳ Refresh Data"):
@@ -288,6 +292,19 @@ col6.metric("Avg Scheduled → Outcome, days", avg_scheduled_to_outcome or "N/A"
 # Initialize the session state for tab if not set
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = 0
+
+# Inject custom CSS to style the tabs
+st.markdown("""
+    <style>
+    /* Increase font size and padding */
+    .stTabs [data-baseweb="tab"] {
+        font-size: 18px;
+        padding: 12px 24px;
+        font-weight: 600;
+        border-bottom: 3px solid transparent;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 tab1, tab2 = st.tabs(["Petition List", "Top 10 Petitions by Metric"])
 
