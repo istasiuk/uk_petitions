@@ -3,6 +3,8 @@ import pandas as pd
 import streamlit as st
 import math
 import altair as alt
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 
 st.set_page_config(layout="wide")
 
@@ -372,6 +374,68 @@ with tab1:
     ]
 
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
+
+    # Helper function to safely convert values to float
+    def safe_float(val):
+        if pd.isna(val):
+            return val
+        if isinstance(val, str):
+            try:
+                return float(val.replace(',', ''))
+            except ValueError:
+                return val  # Could also return np.nan here if preferred
+        return val
+
+    # Convert hex color string to RGB tuple
+    def hex_to_rgb(hex_color):
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+
+    # Convert RGB tuple to hex color string
+    def rgb_to_hex(rgb_color):
+        return '#{:02x}{:02x}{:02x}'.format(*rgb_color)
+
+    # Interpolate between two colors based on normalized value
+    def interpolate_color(value, vmin, vmax, start_color, end_color):
+        if pd.isna(value):
+            return ""
+        # Avoid division by zero if vmin == vmax
+        norm_val = (value - vmin) / (vmax - vmin) if vmax > vmin else 0.5
+
+        start_rgb = hex_to_rgb(start_color)
+        # Convert end_color from rgb string if needed
+        if isinstance(end_color, str) and end_color.startswith('rgb'):
+            end_rgb = tuple(map(int, end_color.strip('rgb()').split(',')))
+        else:
+            end_rgb = hex_to_rgb(end_color)
+
+        interp_rgb = tuple(
+            int(start_c + (end_c - start_c) * norm_val)
+            for start_c, end_c in zip(start_rgb, end_rgb)
+        )
+        return rgb_to_hex(interp_rgb)
+
+    # Use custom gradient colors here
+    def color_scale(value, vmin, vmax):
+        return interpolate_color(value, vmin, vmax, '#0e1117', 'rgb(184,95,75)')
+
+    # Assuming df_display is your DataFrame to style
+    for col in right_align_cols:
+        if col in df_display.columns:
+            # Clean column values for numeric min/max calculation
+            clean_col = df_display[col].apply(safe_float)
+            vmin = clean_col.min()
+            vmax = clean_col.max()
+
+            def style_val(val):
+                numeric_val = safe_float(val)
+                color = color_scale(numeric_val, vmin, vmax)
+                return f'background-color: {color}; padding: 4px; text-align: right;'
+
+            # Replace column values with styled HTML divs
+            df_display[col] = df_display[col].apply(
+                lambda val: f'<div style="{style_val(val)}">{val if pd.notna(val) else ""}</div>'
+            )
 
     html_table = df_display.to_html(escape=False, index=False)
 
