@@ -6,7 +6,7 @@ import altair as alt
 
 st.set_page_config(layout="wide")
 
-@st.cache_data(show_spinner=True, ttl=43200)
+@st.cache_data(show_spinner=True)
 def fetch_petitions():
     all_rows = []
     page = 1
