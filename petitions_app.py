@@ -375,15 +375,19 @@ with tab1:
 
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
 
-    # Helper function to safely convert values to float
+
+    # Helper function to safely convert values to float (preserving ints if possible)
     def safe_float(val):
         if pd.isna(val):
             return val
         if isinstance(val, str):
             try:
-                return float(val.replace(',', ''))
+                return int(val.replace(',', ''))
             except ValueError:
-                return val  # Could also return np.nan here if preferred
+                try:
+                    return float(val.replace(',', ''))
+                except ValueError:
+                    return val
         return val
 
     # Convert hex color string to RGB tuple
@@ -395,19 +399,25 @@ with tab1:
     def rgb_to_hex(rgb_color):
         return '#{:02x}{:02x}{:02x}'.format(*rgb_color)
 
-    # Interpolate between two colors based on normalized value
+
     def interpolate_color(value, vmin, vmax, start_color, end_color):
         if pd.isna(value):
             return ""
-        # Avoid division by zero if vmin == vmax
+
         norm_val = (value - vmin) / (vmax - vmin) if vmax > vmin else 0.5
 
-        start_rgb = hex_to_rgb(start_color)
-        # Convert end_color from rgb string if needed
-        if isinstance(end_color, str) and end_color.startswith('rgb'):
-            end_rgb = tuple(map(int, end_color.strip('rgb()').split(',')))
-        else:
-            end_rgb = hex_to_rgb(end_color)
+        def parse_color(color):
+            if isinstance(color, str):
+                if color.startswith('#'):
+                    return hex_to_rgb(color)
+                elif color.startswith('rgb'):
+                    # Extract the numbers inside 'rgb(...)'
+                    return tuple(map(int, color.strip('rgb()').split(',')))
+            # fallback or error
+            raise ValueError(f"Unsupported color format: {color}")
+
+        start_rgb = parse_color(start_color)
+        end_rgb = parse_color(end_color)
 
         interp_rgb = tuple(
             int(start_c + (end_c - start_c) * norm_val)
@@ -415,29 +425,37 @@ with tab1:
         )
         return rgb_to_hex(interp_rgb)
 
+
     # Use custom gradient colors here
     def color_scale(value, vmin, vmax):
-        return interpolate_color(value, vmin, vmax, '#0e1117', 'rgb(184,95,75)')
+        return interpolate_color(value, vmin, vmax, 'rgb(184,95,75)', '#0e1117')
 
-    # Assuming df_display is your DataFrame to style
-    for col in right_align_cols:
-        if col in df_display.columns:
-            # Clean column values for numeric min/max calculation
-            clean_col = df_display[col].apply(safe_float)
+    # Styling function to be applied via Styler.applymap
+    def style_val_factory(vmin, vmax):
+        def style_val(val):
+            numeric_val = safe_float(val)
+            color = color_scale(numeric_val, vmin, vmax)
+            return f'background-color: {color}; padding: 4px; text-align: right;'
+
+        return style_val
+
+    # Reset index first to remove it from the HTML output
+    df_display_reset = df_display.reset_index(drop=True)
+
+    # Apply styles via Styler without modifying data
+    styler = df_display.style
+
+    for col in int_cols:
+        if col in df_display_reset.columns:
+            clean_col = df_display_reset[col].apply(safe_float)
             vmin = clean_col.min()
             vmax = clean_col.max()
+            styler = styler.applymap(style_val_factory(vmin, vmax), subset=[col])
 
-            def style_val(val):
-                numeric_val = safe_float(val)
-                color = color_scale(numeric_val, vmin, vmax)
-                return f'background-color: {color}; padding: 4px; text-align: right;'
+    # Hide the index explicitly (though index is now default RangeIndex)
+    styler = styler.hide(axis="index")
 
-            # Replace column values with styled HTML divs
-            df_display[col] = df_display[col].apply(
-                lambda val: f'<div style="{style_val(val)}">{val if pd.notna(val) else ""}</div>'
-            )
-
-    html_table = df_display.to_html(escape=False, index=False)
+    html_table = styler.to_html(escape=False)
 
     css = f"""
     <style>
