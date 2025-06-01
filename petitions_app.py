@@ -674,7 +674,7 @@ with tab2:
         )
 
         # Calculate average of the selected metric over all filtered data (not just top_n)
-        average_value = filtered_df[selected_metric].mean()
+        average_value = int(filtered_df[selected_metric].mean())
 
         # Create vertical line at the average
         average_line = alt.Chart(pd.DataFrame({selected_metric: [average_value]})).mark_rule(color='red').encode(
