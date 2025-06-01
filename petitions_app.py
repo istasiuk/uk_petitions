@@ -258,7 +258,7 @@ st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filteri
 # Additional Metrics
 num_response_threshold = filtered_df["Response threshold (10,000) reached at"].notna().sum()
 num_debate_threshold = filtered_df["Debate threshold (100,000) reached at"].notna().sum()
-num_open_closed = filtered_df["State"].str.lower().isin(["open", "closed"]).notna().sum()
+num_open_closed = filtered_df["State"].str.lower().isin(["open", "closed"]).sum()
 num_gov_response = filtered_df["Government response at"].notna().sum()
 num_scheduled_debate = filtered_df["Scheduled debate date"].notna().sum()
 num_debate_outcome = filtered_df["Debate outcome at"].notna().sum()
@@ -626,7 +626,7 @@ with tab2:
 
     with markdown:
         st.markdown(
-           "<br>Apologies—sometimes the y-axis labels may disappear. To fix this, simply choose another metric and then switch back to the original one. This should resolve the issue.",
+           "<br>Apologies - sometimes the y-axis labels may disappear. To fix this, simply choose another metric and then switch back to the original one. This should resolve the issue.",
             unsafe_allow_html=True
         )
 
