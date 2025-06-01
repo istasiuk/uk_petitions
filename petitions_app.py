@@ -235,7 +235,7 @@ with col_last_updated:
     last_updated_plus_one = st.session_state.last_refreshed + timedelta(hours=1)
     st.markdown(
         f"**Last Updated:** {last_updated_plus_one.strftime('%Y-%m-%d %H:%M:%S')}<br>"
-        "This app automatically refreshes every hour at **HH:00:00**",
+        "This app automatically refreshes every hour",
         unsafe_allow_html=True
     )
 
