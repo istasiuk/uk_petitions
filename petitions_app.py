@@ -181,9 +181,17 @@ with st.sidebar:
         use_exact_match = False
 
     st.subheader("Sort Options")
+
+    # Columns to exclude
+    excluded_columns = {"Petition_text", "Debate video", "Debate transcript", "Debate research"}
+
     # Custom column list for dropdown (hide "Petition_text", show "Petition" instead)
-    sort_columns_display = ["Petition" if col == "Petition_text" else col for col in df.columns if
-                            col != "Petition_text"]
+    sort_columns_display = [
+        "Petition" if col == "Petition_text" else col
+        for col in df.columns
+        if col not in excluded_columns
+    ]
+
     sort_column_display = st.selectbox("Column:", options=sort_columns_display, index=sort_columns_display.index(
         "Signatures") if "Signatures" in sort_columns_display else 0)
 
@@ -245,6 +253,22 @@ with col_empty:
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
+# Additional Metrics
+num_response_threshold = filtered_df["Response threshold (10,000) reached at"].notna().sum()
+num_debate_threshold = filtered_df["Debate threshold (100,000) reached at"].notna().sum()
+num_open_closed = filtered_df["State"].str.lower().isin(["open", "closed"]).notna().sum()
+num_gov_response = filtered_df["Government response at"].notna().sum()
+num_scheduled_debate = filtered_df["Scheduled debate date"].notna().sum()
+num_debate_outcome = filtered_df["Debate outcome at"].notna().sum()
+
+col1, col2, col3, col4, col5, col6 = st.columns(6)
+col1.metric("Petitions with Response Threshold Reached", num_response_threshold)
+col2.metric("Petitions with Debate Threshold Reached", num_debate_threshold)
+col3.metric("Open + Closed Petitions", num_open_closed)
+col4.metric("Petitions with Government Response", num_gov_response)
+col5.metric("Petitions with Scheduled Debates", num_scheduled_debate)
+col6.metric("Petitions with Debate Outcome", num_debate_outcome)
+
 avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at", "Response threshold (10,000) reached at")
 avg_opened_to_debate_threshold = avg_days_between(filtered_df, "Opened at", "Debate threshold (100,000) reached at")
 avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
@@ -260,7 +284,7 @@ col4.metric("Avg Resp Threshold → Response, days", avg_response_threshold_to_r
 col5.metric("Avg Debate Threshold → Scheduled, days", avg_debate_threshold_to_scheduled or "N/A")
 col6.metric("Avg Scheduled → Outcome, days", avg_scheduled_to_outcome or "N/A")
 
-tab1, tab2 = st.tabs(["Petition List", "Statistics"])
+tab1, tab2 = st.tabs(["Petition List", "Top 10 Petitions by Metric"])
 
 # Tab 1: Table only
 with tab1:
@@ -562,8 +586,6 @@ with tab1:
     )
 
 with tab2:
-    st.subheader("Top Petitions by Selected Metric")
-
     # Choose metric in chart
     metric_options = [
         "Signatures",
@@ -576,35 +598,12 @@ with tab2:
     ]
     selected_metric = st.selectbox("Metric (Select ascending or descending order in the sidebar)", metric_options)
 
-    # Number of items to show
-    top_n = st.slider("Number of petitions to display", 5, 20, 10)
-
-    # Use the filters from the sidebar to filter the data
-    filtered_df = df.copy()
-
-    if state_filter:
-        filtered_df = filtered_df[filtered_df["State"].isin(state_filter)]
-
-    if department_filter:
-        filtered_df = filtered_df[filtered_df["Department"].isin(department_filter)]
-
-    filtered_df = filtered_df[
-        (filtered_df["Signatures"].fillna(0) >= effective_min_signatures) &
-        (filtered_df["Signatures"].fillna(0) <= effective_max_signatures)
-    ]
-
-    if active_searches:
-        if use_exact_match:
-            filtered_df = filtered_df[filtered_df["Petition_text"].isin(active_searches)]
-        else:
-            filtered_df = filtered_df[filtered_df["Petition_text"].str.contains(active_searches[0], case=False, na=False)]
-
     # Sort and limit
     chart_data = (
         filtered_df[["Petition_text", selected_metric]]
         .dropna(subset=["Petition_text", selected_metric])
         .sort_values(by=selected_metric, ascending=sort_ascending)
-        .head(top_n)
+        .head(10)
         .copy()
     )
 
@@ -613,8 +612,18 @@ with tab2:
     else:
         base = alt.Chart(chart_data).encode(
             x=alt.X(f"{selected_metric}:Q", axis=alt.Axis(labels=False, ticks=False, title=None, grid=False)),
-            y=alt.Y("Petition_text:N", sort='-x' if not sort_ascending else 'x',
-                    axis=alt.Axis(title=None, ticks=False, labelLimit=10000)),
+            y=alt.Y(
+                "Petition_text:N",
+                sort='-x' if not sort_ascending else 'x',
+                axis=alt.Axis(
+                    title=None,
+                    ticks=False,
+                    labels=True,
+                    labelLimit=1000,
+                    labelAngle=0,   # horizontal labels, try changing to 45 or -45 if needed
+                    labelAlign='right'
+                )
+            ),
             tooltip=[
                 alt.Tooltip("Petition_text:N", title="Petition"),
                 alt.Tooltip(f"{selected_metric}:Q", format=",", title=selected_metric)
@@ -636,16 +645,14 @@ with tab2:
         average_value = filtered_df[selected_metric].mean()
 
         # Create vertical line at the average
-        average_line = alt.Chart(pd.DataFrame({selected_metric: [average_value]})).mark_rule(color='red',
-                                                                                             tooltip=None
-                                                                                             ).encode(
+        average_line = alt.Chart(pd.DataFrame({selected_metric: [average_value]})).mark_rule(color='red').encode(
             x=alt.X(f"{selected_metric}:Q")
         )
 
         # Create label text for the average line
         average_label = alt.Chart(pd.DataFrame({
             selected_metric: [average_value],
-            'label': [f"Average: {average_value:.0f}"]  # Format number as integer; change formatting if needed
+            'label': [f"Average: {average_value:,.0f}"]  # Format number as integer
         })).mark_text(
             align='left',
             baseline='bottom',
@@ -656,12 +663,15 @@ with tab2:
             tooltip=None
         ).encode(
             x=alt.X(f"{selected_metric}:Q"),
-            y=alt.value(0),  # Position at the top of the chart (you can adjust y as needed)
+            y=alt.value(0),
             text='label:N'
         )
 
         chart = (bars + text + average_line + average_label).properties(
-            height=top_n * 40
+            height=600,  # Increased height for more space for labels
+            width=700
         )
+
         st.altair_chart(chart, use_container_width=True)
+
 
