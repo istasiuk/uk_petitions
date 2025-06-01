@@ -233,7 +233,7 @@ col_last_updated, col_refresh, col_download, col_empty = st.columns([2, 1, 1, 8]
 
 with col_last_updated:
     last_updated_plus_one = st.session_state.last_refreshed + timedelta(hours=1)
-    st.markdown(f"**Last Updated:** {st.session_state.last_updated_plus_one.strftime('%Y-%m-%d %H:%M:%S')}")
+    st.markdown(f"**Last Updated:** {last_updated_plus_one.strftime('%Y-%m-%d %H:%M:%S')}")
 
 with col_refresh:
     if st.button("⟳ Refresh Data"):
