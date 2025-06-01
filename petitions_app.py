@@ -227,7 +227,7 @@ filtered_df = df[
     petition_filter &
     df["Signatures"].between(effective_min_signatures, effective_max_signatures)]
 
-col_last_updated, col_refresh, col_download, col_empty = st.columns([3, 1, 1, 7])
+col_last_updated, col_empty, col_refresh, col_download = st.columns([3, 7, 1, 1])
 
 with col_last_updated:
     st.markdown(
@@ -235,6 +235,9 @@ with col_last_updated:
         "This app automatically refreshes every hour",
         unsafe_allow_html=True
     )
+
+with col_empty:
+    pass
 
 with col_refresh:
     if st.button("⟳ Refresh Data"):
@@ -249,9 +252,6 @@ with col_download:
         file_name="uk_parliament_petitions.csv",
         mime="text/csv"
     )
-
-with col_empty:
-    pass
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
@@ -619,7 +619,16 @@ with tab2:
         "Debate Threshold → Scheduled, days",
         "Scheduled → Outcome, days"
     ]
-    selected_metric = st.selectbox("Metric (Select ascending or descending order in the sidebar)", metric_options)
+
+    selected_metric, markdown = st.columns([1, 2])
+    with selected_metric:
+        selected_metric = st.selectbox("Metric (Select ascending or descending order in the sidebar)", metric_options)
+
+    with markdown:
+        st.markdown(
+           "<br>Apologies—sometimes the y-axis labels may disappear. To fix this, simply choose another metric and then switch back to the original one. This should resolve the issue.",
+            unsafe_allow_html=True
+        )
 
     # Sort and limit
     chart_data = (
