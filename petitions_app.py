@@ -232,7 +232,8 @@ if "last_refreshed" not in st.session_state:
 col_last_updated, col_refresh, col_download, col_empty = st.columns([2, 1, 1, 8])
 
 with col_last_updated:
-    st.markdown(f"**Last Updated:** {st.session_state.last_refreshed.strftime('%Y-%m-%d %H:%M:%S')}")
+    last_updated_plus_one = st.session_state.last_refreshed + timedelta(hours=1)
+    st.markdown(f"**Last Updated:** {st.session_state.last_updated_plus_one.strftime('%Y-%m-%d %H:%M:%S')}")
 
 with col_refresh:
     if st.button("⟳ Refresh Data"):
