@@ -11,6 +11,8 @@ st.set_page_config(layout="wide")
 def fetch_petitions():
     all_rows = []
     page = 1
+    access_time = datetime.utcnow()
+    last_updated_plus_one = access_time + timedelta(hours=1)
 
     while True:
         url = f"https://petition.parliament.uk/petitions.json?page={page}&state=all"
@@ -81,7 +83,7 @@ def fetch_petitions():
     df["Debate Threshold → Scheduled, days"] = df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
     df["Scheduled → Outcome, days"] = df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
-    return df
+    return df, last_updated_plus_one
 
 def add_tooltip(text, max_len=50):
     if not text:
@@ -105,7 +107,7 @@ def avg_days_between(df, start_col, end_col):
 st.title("UK Parliament Petitions Viewer")
 
 with st.spinner("Fetching petitions..."):
-    df = fetch_petitions()
+    df, last_updated_plus_one = fetch_petitions()
 
 if df.empty:
     st.error("No petition data found. Please refresh or check API availability.")
@@ -225,14 +227,9 @@ filtered_df = df[
     petition_filter &
     df["Signatures"].between(effective_min_signatures, effective_max_signatures)]
 
-# Initialize session state variable if it doesn't exist
-if "last_refreshed" not in st.session_state:
-    st.session_state.last_refreshed = datetime.now()
-
 col_last_updated, col_refresh, col_download, col_empty = st.columns([3, 1, 1, 7])
 
 with col_last_updated:
-    last_updated_plus_one = st.session_state.last_refreshed + timedelta(hours=1)
     st.markdown(
         f"**Last Updated:** {last_updated_plus_one.strftime('%Y-%m-%d %H:%M:%S')}<br>"
         "This app automatically refreshes every hour",
