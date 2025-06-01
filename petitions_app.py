@@ -288,7 +288,7 @@ col6.metric("Avg Scheduled → Outcome, days", avg_scheduled_to_outcome or "N/A"
 
 # Initialize the session state for tab if not set
 if 'active_tab' not in st.session_state:
-    st.session_state.active_tab = 0
+    st.session_state.active_tab = "Petition List"
 
 # Inject custom CSS to style the tabs
 st.markdown("""
@@ -307,7 +307,8 @@ tab1, tab2 = st.tabs(["Petition List", "Top 10 Petitions by Metric"])
 
 # Tab 1: Table only
 with tab1:
-    st.session_state.active_tab = 0
+    if st.button("Go to First Tab"):
+        st.session_state.active_tab = "Petition List"
 
     if "page" not in st.session_state:
         st.session_state.page = 1
@@ -607,7 +608,8 @@ with tab1:
     )
 
 with tab2:
-    st.session_state.active_tab = 1
+    if st.button("Go to Second Tab"):
+        st.session_state.active_tab = "Top 10 Petitions by Metric"
 
     # Choose metric in chart
     metric_options = [
@@ -705,5 +707,11 @@ with tab2:
         )
 
         st.altair_chart(chart, use_container_width=True)
+
+# After button click, re-render tab based on session state
+if st.session_state.active_tab == "Top 10 Petitions by Metric":
+    tab2
+else:
+    tab1
 
 
