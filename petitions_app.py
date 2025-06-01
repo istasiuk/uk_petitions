@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 import math
 import altair as alt
+from datetime import datetime
 
 st.set_page_config(layout="wide")
 
@@ -216,7 +217,14 @@ filtered_df = df[
     petition_filter &
     df["Signatures"].between(effective_min_signatures, effective_max_signatures)]
 
-col_refresh, col_download, col_empty = st.columns([1, 1, 10])
+# Initialize session state variable if it doesn't exist
+if "last_refreshed" not in st.session_state:
+    st.session_state.last_refreshed = datetime.now()
+
+col_last_updated, col_refresh, col_download, col_empty = st.columns([2, 1, 1, 8])
+
+with col_last_updated:
+    st.markdown(f"**Last Updated:** {st.session_state.last_refreshed.strftime('%Y-%m-%d %H:%M:%S')}")
 
 with col_refresh:
     if st.button("⟳ Refresh Data"):
@@ -448,7 +456,7 @@ with tab1:
             clean_col = df_display_reset[col].apply(safe_float)
             vmin = clean_col.min()
             vmax = clean_col.max()
-            styler = styler.applymap(style_val_factory(vmin, vmax), subset=[col])
+            styler = styler.map(style_val_factory(vmin, vmax), subset=[col])
 
     # Hide the index explicitly (though index is now default RangeIndex)
     styler = styler.hide(axis="index")
@@ -554,13 +562,48 @@ with tab1:
     )
 
 with tab2:
-    st.subheader("Top Petitions by Signatures")
+    st.subheader("Top Petitions by Selected Metric")
+
+    # Choose metric in chart
+    metric_options = [
+        "Signatures",
+        "Opened → Resp Threshold, days",
+        "Opened → Debate Threshold, days",
+        "Created → Opened, days",
+        "Resp Threshold → Response, days",
+        "Debate Threshold → Scheduled, days",
+        "Scheduled → Outcome, days"
+    ]
+    selected_metric = st.selectbox("Metric (Select ascending or descending order in the sidebar)", metric_options)
+
+    # Number of items to show
     top_n = st.slider("Number of petitions to display", 5, 20, 10)
 
+    # Use the filters from the sidebar to filter the data
+    filtered_df = df.copy()
+
+    if state_filter:
+        filtered_df = filtered_df[filtered_df["State"].isin(state_filter)]
+
+    if department_filter:
+        filtered_df = filtered_df[filtered_df["Department"].isin(department_filter)]
+
+    filtered_df = filtered_df[
+        (filtered_df["Signatures"].fillna(0) >= effective_min_signatures) &
+        (filtered_df["Signatures"].fillna(0) <= effective_max_signatures)
+    ]
+
+    if active_searches:
+        if use_exact_match:
+            filtered_df = filtered_df[filtered_df["Petition_text"].isin(active_searches)]
+        else:
+            filtered_df = filtered_df[filtered_df["Petition_text"].str.contains(active_searches[0], case=False, na=False)]
+
+    # Sort and limit
     chart_data = (
-        filtered_df[["Petition_text", "Signatures"]]
-        .dropna(subset=["Petition_text", "Signatures"])
-        .sort_values("Signatures", ascending=False)
+        filtered_df[["Petition_text", selected_metric]]
+        .dropna(subset=["Petition_text", selected_metric])
+        .sort_values(by=selected_metric, ascending=sort_ascending)
         .head(top_n)
         .copy()
     )
@@ -569,11 +612,12 @@ with tab2:
         st.info("No petitions to show in chart with the current filters.")
     else:
         base = alt.Chart(chart_data).encode(
-            x=alt.X("Signatures:Q", axis=alt.Axis(labels=False, ticks=False, title=None, grid=False)),  # Remove x-axis labels and ticks
-            y=alt.Y("Petition_text:N", sort='-x', axis=alt.Axis(title=None, ticks=False, labelLimit=1000)),  # No y-axis title
+            x=alt.X(f"{selected_metric}:Q", axis=alt.Axis(labels=False, ticks=False, title=None, grid=False)),
+            y=alt.Y("Petition_text:N", sort='-x' if not sort_ascending else 'x',
+                    axis=alt.Axis(title=None, ticks=False, labelLimit=10000)),
             tooltip=[
                 alt.Tooltip("Petition_text:N", title="Petition"),
-                alt.Tooltip("Signatures:Q", format=",", title="Signatures")
+                alt.Tooltip(f"{selected_metric}:Q", format=",", title=selected_metric)
             ]
         )
 
@@ -582,11 +626,42 @@ with tab2:
         text = base.mark_text(
             align="left",
             baseline="middle",
-            dx=7,  # position just outside right edge of bars
+            dx=7,
             color='white'
         ).encode(
-            text=alt.Text("Signatures:Q", format=",")
+            text=alt.Text(f"{selected_metric}:Q", format=",")
         )
 
-        chart = (bars + text).properties(height=top_n * 40)
+        # Calculate average of the selected metric over all filtered data (not just top_n)
+        average_value = filtered_df[selected_metric].mean()
+
+        # Create vertical line at the average
+        average_line = alt.Chart(pd.DataFrame({selected_metric: [average_value]})).mark_rule(color='red',
+                                                                                             tooltip=None
+                                                                                             ).encode(
+            x=alt.X(f"{selected_metric}:Q")
+        )
+
+        # Create label text for the average line
+        average_label = alt.Chart(pd.DataFrame({
+            selected_metric: [average_value],
+            'label': [f"Average: {average_value:.0f}"]  # Format number as integer; change formatting if needed
+        })).mark_text(
+            align='left',
+            baseline='bottom',
+            dx=5,
+            dy=-5,
+            color='white',
+            fontWeight='bold',
+            tooltip=None
+        ).encode(
+            x=alt.X(f"{selected_metric}:Q"),
+            y=alt.value(0),  # Position at the top of the chart (you can adjust y as needed)
+            text='label:N'
+        )
+
+        chart = (bars + text + average_line + average_label).properties(
+            height=top_n * 40
+        )
         st.altair_chart(chart, use_container_width=True)
+
