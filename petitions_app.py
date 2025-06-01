@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 st.set_page_config(layout="wide")
 
-@st.cache_data(show_spinner=True)
+@st.cache_data(show_spinner=True, ttl=3600)
 def fetch_petitions():
     all_rows = []
     page = 1
