@@ -3,8 +3,6 @@ import pandas as pd
 import streamlit as st
 import math
 import altair as alt
-import matplotlib.colors as mcolors
-import matplotlib.cm as cm
 
 st.set_page_config(layout="wide")
 
@@ -75,10 +73,10 @@ def fetch_petitions():
         return int(diff) if diff >= 0 else None
 
     # Calculate the days-between columns here
-    df["Created → Opened, days"] = df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
     df["Opened → Resp Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
-    df["Resp Threshold → Response, days"] = df.apply(lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
     df["Opened → Debate Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
+    df["Created → Opened, days"] = df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
+    df["Resp Threshold → Response, days"] = df.apply(lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
     df["Debate Threshold → Scheduled, days"] = df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
     df["Scheduled → Outcome, days"] = df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
@@ -239,18 +237,18 @@ with col_empty:
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
-avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
 avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at", "Response threshold (10,000) reached at")
-avg_response_threshold_to_response = avg_days_between(filtered_df, "Response threshold (10,000) reached at", "Government response at")
 avg_opened_to_debate_threshold = avg_days_between(filtered_df, "Opened at", "Debate threshold (100,000) reached at")
+avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
+avg_response_threshold_to_response = avg_days_between(filtered_df, "Response threshold (10,000) reached at", "Government response at")
 avg_debate_threshold_to_scheduled = avg_days_between(filtered_df, "Debate threshold (100,000) reached at", "Scheduled debate date")
 avg_scheduled_to_outcome = avg_days_between(filtered_df, "Scheduled debate date", "Debate outcome at")
 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
-col1.metric("Avg Created → Opened, days", avg_created_to_opened or "N/A")
-col2.metric("Avg Opened → Resp Threshold, days", avg_opened_to_response_threshold or "N/A")
-col3.metric("Avg Resp Threshold → Response, days", avg_response_threshold_to_response or "N/A")
-col4.metric("Avg Opened → Debate Threshold, days", avg_opened_to_debate_threshold or "N/A")
+col1.metric("Avg Opened → Resp Threshold, days", avg_opened_to_response_threshold or "N/A")
+col2.metric("Avg Opened → Debate Threshold, days", avg_opened_to_debate_threshold or "N/A")
+col3.metric("Avg Created → Opened, days", avg_created_to_opened or "N/A")
+col4.metric("Avg Resp Threshold → Response, days", avg_response_threshold_to_response or "N/A")
 col5.metric("Avg Debate Threshold → Scheduled, days", avg_debate_threshold_to_scheduled or "N/A")
 col6.metric("Avg Scheduled → Outcome, days", avg_scheduled_to_outcome or "N/A")
 
@@ -343,10 +341,10 @@ with tab1:
     df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
 
     int_cols = [
-        "Created → Opened, days",
         "Opened → Resp Threshold, days",
-        "Resp Threshold → Response, days",
         "Opened → Debate Threshold, days",
+        "Created → Opened, days",
+        "Resp Threshold → Response, days",
         "Debate Threshold → Scheduled, days",
         "Scheduled → Outcome, days"
     ]
@@ -365,10 +363,10 @@ with tab1:
     # Get index positions (1-based) of the columns to right-align
     right_align_cols = [
         "Signatures",
-        "Created → Opened, days",
         "Opened → Resp Threshold, days",
-        "Resp Threshold → Response, days",
         "Opened → Debate Threshold, days",
+        "Created → Opened, days",
+        "Resp Threshold → Response, days",
         "Debate Threshold → Scheduled, days",
         "Scheduled → Outcome, days"
     ]
