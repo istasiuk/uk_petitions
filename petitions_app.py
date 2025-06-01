@@ -284,10 +284,16 @@ col4.metric("Avg Resp Threshold → Response, days", avg_response_threshold_to_r
 col5.metric("Avg Debate Threshold → Scheduled, days", avg_debate_threshold_to_scheduled or "N/A")
 col6.metric("Avg Scheduled → Outcome, days", avg_scheduled_to_outcome or "N/A")
 
+# Initialize the session state for tab if not set
+if 'active_tab' not in st.session_state:
+    st.session_state.active_tab = 0
+
 tab1, tab2 = st.tabs(["Petition List", "Top 10 Petitions by Metric"])
 
 # Tab 1: Table only
 with tab1:
+    st.session_state.active_tab = 0
+
     if "page" not in st.session_state:
         st.session_state.page = 1
 
@@ -586,6 +592,8 @@ with tab1:
     )
 
 with tab2:
+    st.session_state.active_tab = 1
+
     # Choose metric in chart
     metric_options = [
         "Signatures",
