@@ -3,9 +3,10 @@ import pandas as pd
 import streamlit as st
 import math
 import altair as alt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-# App layout
+
+# Create app layout
 st.set_page_config(
     page_title="UK Petitions",
     page_icon="📝",
@@ -17,8 +18,11 @@ st.set_page_config(
     }
 )
 
+# Add app title
 st.title("UK Parliament Petitions Viewer")
 
+
+# Cache the data once per hour
 @st.cache_data(show_spinner=True, ttl=3600)
 def fetch_petitions():
     all_rows = []
@@ -34,6 +38,7 @@ def fetch_petitions():
 
         data = response.json()
         petitions = data.get("data", [])
+        next_link = data.get("links", {}).get("next")
 
         for petition in petitions:
             attrs = petition.get("attributes", {})
@@ -42,8 +47,12 @@ def fetch_petitions():
             debate = attrs.get("debate") or {}
             departments = attrs.get("departments", [])
 
+            # Prepare DataFrame
             all_rows.append({
-                "Petition": f'<a href="{links.get("self").replace(".json", "")}" target="_blank">{attrs.get("action")}</a>' if links.get("self") else attrs.get("action"),
+                "Petition": (
+                    f'<a href="{links.get("self").replace(".json", "")}" target="_blank">{attrs.get("action")}</a>'
+                    if links.get("self") else attrs.get("action")
+                ),
                 "Petition_text": attrs.get("action"),
                 "State": attrs.get("state"),
                 "Signatures": attrs.get("signature_count"),
@@ -56,101 +65,145 @@ def fetch_petitions():
                 "Scheduled debate date": attrs.get("scheduled_debate_date"),
                 "Debate outcome at": attrs.get("debate_outcome_at"),
                 "Response": response_data.get("summary"),
-                "Debate video": f'<a href="{debate.get("video_url")}" target="_blank">Video</a>' if debate.get("video_url") else "",
-                "Debate transcript": f'<a href="{debate.get("transcript_url")}" target="_blank">Transcript</a>' if debate.get(
-                    "transcript_url") else "",
-                "Debate research": f'<a href="{debate.get("debate_pack_url")}" target="_blank">Research</a>' if debate.get(
-                    "debate_pack_url") else "",
+                "Debate video": (
+                    f'<a href="{debate.get("video_url")}" target="_blank">Video</a>'
+                    if debate.get("video_url") else ""
+                ),
+                "Debate transcript": (
+                    f'<a href="{debate.get("transcript_url")}" target="_blank">Transcript</a>'
+                    if debate.get("transcript_url") else ""
+                ),
+                "Debate research": (
+                    f'<a href="{debate.get("debate_pack_url")}" target="_blank">Research</a>'
+                    if debate.get("debate_pack_url") else ""
+                ),
                 "Department": departments[0].get("name") if departments else "Unassigned"
             })
 
-        next_link = data.get("links", {}).get("next")
+        # Stop if no more pages
         if not next_link:
             break
-
         page += 1
 
+    # Create DataFrame
     df = pd.DataFrame(all_rows)
 
+    # Create a function to calculate days between two dates
     def days_between(start_date, end_date):
-        start = pd.to_datetime(start_date, errors='coerce')
-        end = pd.to_datetime(end_date, errors='coerce')
+        start = pd.to_datetime(start_date, errors='coerce', utc=True)
+        end = pd.to_datetime(end_date, errors='coerce', utc=True)
 
+        # If either date is invalid, return None
         if pd.isna(start) or pd.isna(end):
             return None
 
-        if start.tz is not None:
-            start = start.tz_convert(None)
-        if end.tz is not None:
-            end = end.tz_convert(None)
+        # Calculate day difference ignoring timezones
+        return (end - start).days if (end - start).days >= 0 else None
 
-        diff = (end - start).days
-        return int(diff) if diff >= 0 else None
+    # Add calculated date difference columns
+    df["Opened → Resp Thresh, days"] = df.apply(
+        lambda row: days_between(row["Opened at"], row["Response threshold reached at"]), axis=1)
+    df["Opened → Deb Thresh, days"] = df.apply(
+        lambda row: days_between(row["Opened at"], row["Debate threshold reached at"]), axis=1)
+    df["Created → Opened, days"] = df.apply(
+        lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
+    df["Resp Thresh → Gov Resp, days"] = df.apply(
+        lambda row: days_between(row["Response threshold reached at"], row["Government response at"]), axis=1)
+    df["Deb Thresh → Deb Sched, days"] = df.apply(
+        lambda row: days_between(row["Debate threshold reached at"], row["Scheduled debate date"]), axis=1)
+    df["Deb Sched → Deb Outcome, days"] = df.apply(
+        lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
-    # Calculate the days-between columns here
-    df["Opened → Resp Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Response threshold reached at"]), axis=1)
-    df["Opened → Debate Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold reached at"]), axis=1)
-    df["Created → Opened, days"] = df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
-    df["Resp Threshold → Response, days"] = df.apply(lambda row: days_between(row["Response threshold reached at"], row["Government response at"]), axis=1)
-    df["Debate Threshold → Scheduled, days"] = df.apply(lambda row: days_between(row["Debate threshold reached at"], row["Scheduled debate date"]), axis=1)
-    df["Scheduled → Outcome, days"] = df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
+    today = datetime.now(timezone.utc)
+
+    # Waiting for Gov Resp, days
+    df["Waiting for Gov Resp, days"] = df.apply(
+        lambda row: (today - pd.to_datetime(row["Response threshold reached at"], errors='coerce',
+                                            utc=True).to_pydatetime()).days
+        if pd.notna(pd.to_datetime(row["Response threshold reached at"], errors='coerce', utc=True))
+           and pd.isna(pd.to_datetime(row["Government response at"], errors='coerce', utc=True))
+           and (today - pd.to_datetime(row["Response threshold reached at"], errors='coerce',
+                                       utc=True).to_pydatetime()).days >= 0
+        else None,
+        axis=1
+    )
+
+    # Waiting for Deb Sched, days
+    df["Waiting for Deb Sched, days"] = df.apply(
+        lambda row: (today - pd.to_datetime(row["Debate threshold reached at"], errors='coerce',
+                                            utc=True).to_pydatetime()).days
+        if pd.notna(pd.to_datetime(row["Debate threshold reached at"], errors='coerce', utc=True))
+           and pd.isna(pd.to_datetime(row["Scheduled debate date"], errors='coerce', utc=True))
+           and (today - pd.to_datetime(row["Debate threshold reached at"], errors='coerce',
+                                       utc=True).to_pydatetime()).days >= 0
+        else None,
+        axis=1
+    )
+
+    # Waiting for Deb Outcome, days
+    df["Waiting for Deb Outcome, days"] = df.apply(
+        lambda row: (today - pd.to_datetime(row["Scheduled debate date"], errors='coerce',
+                                            utc=True).to_pydatetime()).days
+        if pd.notna(pd.to_datetime(row["Scheduled debate date"], errors='coerce', utc=True))
+           and (pd.to_datetime(row["Scheduled debate date"], errors='coerce', utc=True) < pd.Timestamp(today))
+           and pd.isna(pd.to_datetime(row["Debate outcome at"], errors='coerce', utc=True))
+           and (today - pd.to_datetime(row["Scheduled debate date"], errors='coerce',
+                                       utc=True).to_pydatetime()).days >= 0
+        else None,
+        axis=1
+    )
 
     return df, last_updated_plus_one
 
-def add_tooltip(text, max_len=50):
-    if not text:
-        return ""
-    short_text = text if len(text) <= max_len else text[:max_len] + "..."
-    escaped_text = text.replace('"', '&quot;').replace("'", "&apos;")
-    return f'<span title="{escaped_text}">{short_text}</span>'
 
-def avg_days_between(df, start_col, end_col):
-    start_dates = pd.to_datetime(df[start_col], errors='coerce')
-    end_dates = pd.to_datetime(df[end_col], errors='coerce')
-
-    if start_dates.dt.tz is not None:
-        start_dates = start_dates.dt.tz_convert(None)
-    if end_dates.dt.tz is not None:
-        end_dates = end_dates.dt.tz_convert(None)
-
-    diffs = (end_dates - start_dates).dt.days.dropna()
-    return int(diffs.mean()) if len(diffs) > 0 else None
-
+# Display a spinner with the message while fetching petitions data
 with st.spinner("Fetching petitions..."):
     df, last_updated_plus_one = fetch_petitions()
 
+# Check if the returned DataFrame is empty (no petitions found) and show an error message to the user
 if df.empty:
     st.error("No petition data found. Please refresh or check API availability.")
     st.stop()
 
+
 with st.sidebar:
     st.subheader("Filters")
 
-    if "Department" not in df.columns or "State" not in df.columns or "Petition_text" not in df.columns:
-        st.error("Expected columns missing in the data.")
+    # Check that necessary columns exist in the dataframe
+    required_cols = {"Department", "State", "Petition_text"}
+    if not required_cols.issubset(df.columns):
+        missing = required_cols - set(df.columns)
+        st.error(f"Expected columns missing in the data: {missing}")
         st.stop()
 
+    # Replace missing Department values with "Unassigned"
     df["Department"] = df["Department"].fillna("Unassigned")
-    state_options = sorted(df["State"].dropna().unique().tolist())
-    department_options = sorted(df["Department"].dropna().unique().tolist())
 
+    # Prepare filter options for State and Department (sorted, without NaNs)
+    state_options = sorted(df["State"].dropna().unique())
+    department_options = sorted(df["Department"].dropna().unique())
+
+    # User selects multiple states and departments (default: no filter)
     state_filter = st.multiselect("State", options=state_options, default=[])
     department_filter = st.multiselect("Department", options=department_options, default=[])
 
-    max_signatures = int(df["Signatures"].max()) if not df["Signatures"].isnull().all() else 0
-    min_signatures = int(df["Signatures"].min()) if not df["Signatures"].isnull().all() else 0
+    # Handle signature bounds safely (0 if all missing)
+    if df["Signatures"].isnull().all():
+        min_signatures, max_signatures = 0, 0
+    else:
+        min_signatures = int(df["Signatures"].min())
+        max_signatures = int(df["Signatures"].max())
 
-    min_possible = 0
-    max_possible = max_signatures
-
-    col1, col2 = st.columns(2)  # create two columns
+    # Signature filter inputs in two columns side by side
+    min_possible, max_possible = 0, max_signatures
+    col1, col2 = st.columns(2)
 
     with col1:
         custom_min = st.number_input(
             "Min Signatures",
             min_value=min_possible,
             max_value=max_possible,
-            value=st.session_state.get('custom_min', min_signatures),
+            value=st.session_state.get("custom_min", min_signatures),
             step=1,
             key="custom_min"
         )
@@ -159,11 +212,12 @@ with st.sidebar:
             "Max Signatures",
             min_value=min_possible,
             max_value=max_possible,
-            value=st.session_state.get('custom_max', max_signatures),
+            value=st.session_state.get("custom_max", max_signatures),
             step=1,
             key="custom_max"
         )
 
+    # Validate that min <= max for signatures
     if custom_min > custom_max:
         st.error("Min cannot be greater than Max.")
         st.stop()
@@ -172,12 +226,14 @@ with st.sidebar:
     effective_max_signatures = custom_max
 
     st.subheader("Petitions")
+
+    # Petition options for dropdown, exclude NaNs
     petition_texts = df["Petition_text"].dropna().unique().tolist()
 
     selected_dropdowns = st.multiselect("Choose petition(s)", petition_texts)
     custom_search = st.text_input("Or enter your own text")
 
-    # Decide which petition filter to use
+    # Determine which petition filter to apply
     if selected_dropdowns and custom_search:
         st.warning("Using both dropdown and custom text. Only dropdown will be used.")
         active_searches = selected_dropdowns
@@ -189,71 +245,78 @@ with st.sidebar:
         active_searches = [custom_search]
         use_exact_match = False
     else:
-        active_searches = None  # No filtering on petitions
+        active_searches = None  # No petition filter
         use_exact_match = False
 
     st.subheader("Sort Options")
 
-    # Columns to exclude
+    # Columns to exclude from sorting dropdown
     excluded_columns = {"Petition_text", "Debate video", "Debate transcript", "Debate research"}
 
-    # Custom column list for dropdown (hide "Petition_text", show "Petition" instead)
+    # Show columns for sorting, replacing "Petition_text" with "Petition" for display
     sort_columns_display = [
         "Petition" if col == "Petition_text" else col
         for col in df.columns
         if col not in excluded_columns
     ]
 
-    sort_column_display = st.selectbox("Column:", options=sort_columns_display, index=sort_columns_display.index(
-        "Signatures") if "Signatures" in sort_columns_display else 0)
+    default_sort_idx = sort_columns_display.index("Signatures") if "Signatures" in sort_columns_display else 0
+    sort_column_display = st.selectbox("Column:", options=sort_columns_display, index=default_sort_idx)
 
-    # Map display name back to actual column name
+    # Map display back to actual column name
     sort_column = "Petition_text" if sort_column_display == "Petition" else sort_column_display
 
+    # Sort order selection, default descending
     order = st.radio("Order:", options=["Ascending", "Descending"], index=1)
     sort_ascending = order == "Ascending"
 
+# Use full list if user selects no filter (i.e., no filtering on that field)
 effective_state_filter = state_filter if state_filter else state_options
 effective_department_filter = department_filter if department_filter else department_options
 
-# Filter petitions based on petition text filter
+# Filter dataframe based on petition filters
 if active_searches is None:
+    # No petition filtering - keep all rows
     petition_filter = [True] * len(df)
 else:
     if use_exact_match:
-        # Filter by exact match
+        # Exact match filtering
         petition_filter = df["Petition_text"].apply(
             lambda text: text in active_searches if pd.notnull(text) else False
         )
     else:
-        # Filter by substring (case-insensitive)
+        # Substring match (case-insensitive)
         petition_filter = df["Petition_text"].apply(
-            lambda text: any(s.lower() in text.lower() for s in active_searches) if pd.notnull(text) else False
+            lambda text: any(search.lower() in text.lower() for search in active_searches) if pd.notnull(text) else False
         )
 
+# Final filtered dataframe
 filtered_df = df[
     df["State"].isin(effective_state_filter) &
     df["Department"].isin(effective_department_filter) &
     petition_filter &
-    df["Signatures"].between(effective_min_signatures, effective_max_signatures)]
+    df["Signatures"].between(effective_min_signatures, effective_max_signatures)
+]
 
-col_last_updated, col_empty, col_refresh, col_download = st.columns([4, 4, 2, 2])
 
-with col_last_updated:
+# Create three columns
+col_spacer, col_refresh, col_download = st.columns([8, 2, 2])
+
+# In the first column, show when the data was last updated and mention auto-refresh
+with col_spacer:
     st.markdown(
         f"**Last Updated:** {last_updated_plus_one.strftime('%Y-%m-%d %H:%M:%S')}<br>"
         "This app automatically refreshes every hour",
         unsafe_allow_html=True
     )
 
-with col_empty:
-    pass
-
+# In the second column, create a "Refresh Data" button to manually refresh the data
 with col_refresh:
     if st.button("⟳ Refresh Data"):
         fetch_petitions.clear()
         st.rerun()
 
+# In the third column, create a "Download CSV" button to download the currently filtered data as a CSV file
 with col_download:
     csv_data = filtered_df.to_csv(index=False, header=True).encode('utf-8')
     st.download_button(
@@ -263,14 +326,16 @@ with col_download:
         mime="text/csv"
     )
 
+# Show a success message with counts of total petitions loaded and how many are currently displayed after filtering
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
+
+
+# Create tabs with keys to identify them uniquely
+tabs = ["Key metrics", "Petition List", "Top 10 Petitions by Metric", "Info"]
 
 # Initialize session state for the current tab if not already set
 if "current_tab" not in st.session_state:
     st.session_state.current_tab = "Key metrics"
-
-# Create tabs with keys to identify them uniquely
-tabs = ["Key metrics", "Petition List", "Top 10 Petitions by Metric", "Info"]
 
 # Display tabs and get selected tab index
 selected_tab_index = tabs.index(st.session_state.current_tab)
@@ -291,8 +356,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
 # Key metrics
 with tab1:
+    # Ensure the tab state is updated
     if st.session_state.current_tab != "Key metrics":
         st.session_state.current_tab = "Key metrics"
 
@@ -334,6 +401,19 @@ with tab1:
     # Timelines metrics
     st.markdown("#### Average Timelines, days")
 
+    # Create function to calculate average days between two dates
+    def avg_days_between(df, start_col, end_col):
+        start_dates = pd.to_datetime(df[start_col], errors='coerce')
+        end_dates = pd.to_datetime(df[end_col], errors='coerce')
+
+        if start_dates.dt.tz is not None:
+            start_dates = start_dates.dt.tz_convert(None)
+        if end_dates.dt.tz is not None:
+            end_dates = end_dates.dt.tz_convert(None)
+
+        diffs = (end_dates - start_dates).dt.days.dropna()
+        return int(diffs.mean()) if len(diffs) > 0 else None
+
     # Calculate the timelines metrics
     avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at",
                                                         "Response threshold reached at")
@@ -356,6 +436,7 @@ with tab1:
 
 # Tab 2: Table only
 with tab2:
+    # Ensure the tab state is updated
     if st.session_state.current_tab != "Petition List":
         st.session_state.current_tab = "Petition List"
 
@@ -370,6 +451,13 @@ with tab2:
     start_idx = (st.session_state.page - 1) * ITEMS_PER_PAGE
     end_idx = start_idx + ITEMS_PER_PAGE
     paged_df = sorted_df.iloc[start_idx:end_idx].copy()
+
+    def add_tooltip(text, max_len=50):
+        if not text:
+            return ""
+        short_text = text if len(text) <= max_len else text[:max_len] + "..."
+        escaped_text = text.replace('"', '&quot;').replace("'", "&apos;")
+        return f'<span title="{escaped_text}">{short_text}</span>'
 
     date_columns = [
         "Created at", "Opened at", "Closed at",
@@ -442,12 +530,15 @@ with tab2:
     df_display["Signatures"] = df_display["Signatures"].map("{:,}".format)
 
     int_cols = [
-        "Opened → Resp Threshold, days",
-        "Opened → Debate Threshold, days",
+        "Opened → Resp Thresh, days",
+        "Opened → Deb Thresh, days",
         "Created → Opened, days",
-        "Resp Threshold → Response, days",
-        "Debate Threshold → Scheduled, days",
-        "Scheduled → Outcome, days"
+        "Resp Thresh → Gov Resp, days",
+        "Deb Thresh → Deb Sched, days",
+        "Deb Sched → Deb Outcome, days",
+        "Waiting for Gov Resp, days",
+        "Waiting for Deb Sched, days",
+        "Waiting for Deb Outcome, days"
     ]
 
     for col in int_cols:
@@ -464,12 +555,15 @@ with tab2:
     # Get index positions (1-based) of the columns to right-align
     right_align_cols = [
         "Signatures",
-        "Opened → Resp Threshold, days",
-        "Opened → Debate Threshold, days",
+        "Opened → Resp Thresh, days",
+        "Opened → Deb Thresh, days",
         "Created → Opened, days",
-        "Resp Threshold → Response, days",
-        "Debate Threshold → Scheduled, days",
-        "Scheduled → Outcome, days"
+        "Resp Thresh → Gov Resp, days",
+        "Deb Thresh → Deb Sched, days",
+        "Deb Sched → Deb Outcome, days",
+        "Waiting for Gov Resp, days",
+        "Waiting for Deb Sched, days",
+        "Waiting for Deb Outcome, days"
     ]
 
     right_align_indices = [df_display.columns.get_loc(col) + 1 for col in right_align_cols if col in df_display.columns]
@@ -613,7 +707,10 @@ with tab2:
         table td:nth-child(19),
         table td:nth-child(20),
         table td:nth-child(21),
-        table td:nth-child(22) {
+        table td:nth-child(22),
+        table td:nth-child(23),
+        table td:nth-child(24),
+        table td:nth-child(25) {
             width: 100px;
             max-width: 100px;
         }
@@ -654,55 +751,68 @@ with tab2:
         unsafe_allow_html=True
     )
 
+
+# Top 10 Petitions by Metric
 with tab3:
+    # Ensure the tab state is updated
     if st.session_state.current_tab != "Top 10 Petitions by Metric":
         st.session_state.current_tab = "Top 10 Petitions by Metric"
 
-    # Choose metric in chart
+    # Define selectable metrics
     metric_options = [
         "Signatures",
-        "Opened → Resp Threshold, days",
-        "Opened → Debate Threshold, days",
+        "Opened → Resp Thresh, days",
+        "Opened → Deb Thresh, days",
         "Created → Opened, days",
-        "Resp Threshold → Response, days",
-        "Debate Threshold → Scheduled, days",
-        "Scheduled → Outcome, days"
+        "Resp Thresh → Gov Resp, days",
+        "Deb Thresh → Deb Sched, days",
+        "Deb Sched → Deb Outcome, days",
+        "Waiting for Gov Resp, days",
+        "Waiting for Deb Sched, days",
+        "Waiting for Deb Outcome, days"
     ]
 
-    selected_metric, markdown = st.columns([1, 2])
-    with selected_metric:
-        selected_metric = st.selectbox("Metric (Select ascending or descending order in the sidebar)", metric_options)
+    # Create layout for metric selector and notice
+    col_metric, col_notice = st.columns([2, 2])
+    with col_metric:
+        selected_metric = st.selectbox(
+            "Metric (Select ascending or descending order in the sidebar)",
+            metric_options
+        )
 
-    with markdown:
+    with col_notice:
         st.markdown(
-           "<br>Apologies - sometimes the y-axis labels may disappear. To fix this, simply choose another metric and then switch back to the original one. This should resolve the issue.",
+            "Apologies - sometimes the y-axis labels may disappear.<br> To fix this, simply choose another metric and then switch back.",
             unsafe_allow_html=True
         )
 
-    # Sort and limit
+    # Filter the top 10 petitions based on the selected metric, excluding any rows with missing values
     chart_data = (
         filtered_df[["Petition_text", selected_metric]]
-        .dropna(subset=["Petition_text", selected_metric])
+        .dropna()
         .sort_values(by=selected_metric, ascending=sort_ascending)
         .head(10)
         .copy()
     )
 
-    if chart_data.empty:
+    # Handle empty chart case
+    if chart_data.empty:    
         st.info("No petitions to show in chart with the current filters.")
     else:
+        # Base chart setup
         base = alt.Chart(chart_data).encode(
-            x=alt.X(f"{selected_metric}:Q", axis=alt.Axis(labels=False, ticks=False, title=None, grid=False)),
+            x=alt.X(
+                f"{selected_metric}:Q",
+                axis=alt.Axis(labels=False, ticks=False, title=None, grid=False)
+            ),
             y=alt.Y(
                 "Petition_text:N",
-                sort='-x' if not sort_ascending else 'x',
+                sort='x' if sort_ascending else '-x',
                 axis=alt.Axis(
                     title=None,
                     ticks=False,
                     labels=True,
-                    labelLimit=1000,
-                    labelAngle=0,   # horizontal labels, try changing to 45 or -45 if needed
-                    labelAlign='right'
+                    labelLimit=1000
                 )
             ),
             tooltip=[
@@ -711,45 +821,50 @@ with tab3:
             ]
         )
 
-        bars = base.mark_bar()
+        # Bar chart layer
+        bars = base.mark_bar(color="#74ac84")
 
+        # Text label layer showing metric values
         text = base.mark_text(
             align="left",
             baseline="middle",
             dx=7,
-            color='white'
+            color='black'
         ).encode(
             text=alt.Text(f"{selected_metric}:Q", format=",")
         )
 
-        # Calculate average of the selected metric over all filtered data (not just top_n)
+        # Calculate average of selected metric for all filtered data
         average_value = int(filtered_df[selected_metric].mean())
 
-        # Create vertical line at the average
-        average_line = alt.Chart(pd.DataFrame({selected_metric: [average_value]})).mark_rule(color='red').encode(
+        # Vertical rule to mark the average
+        average_line = alt.Chart(
+            pd.DataFrame({selected_metric: [average_value]})
+        ).mark_rule(color='red').encode(
             x=alt.X(f"{selected_metric}:Q")
         )
 
-        # Create label text for the average line
+        # Label for the average line
         average_label = alt.Chart(pd.DataFrame({
             selected_metric: [average_value],
-            'label': [f"Average: {average_value:,.0f}"]  # Format number as integer
+            'label': [f"Average: {average_value:,.0f}"]
         })).mark_text(
             align='left',
             baseline='bottom',
             dx=5,
             dy=-5,
-            color='white',
+            color='black',
             fontWeight='bold',
             tooltip=None
         ).encode(
             x=alt.X(f"{selected_metric}:Q"),
-            y=alt.value(0),
+            y=alt.value(0),  # Position at top of chart
             text='label:N'
         )
 
+        # Combine all layers and render the chart
         chart = (bars + text + average_line + average_label).properties(
-            height=600,  # Increased height for more space for labels
+            height=400,
             width=700
         )
 
@@ -758,6 +873,7 @@ with tab3:
 
 # Info
 with tab4:
+    # Ensure the tab state is updated
     if st.session_state.current_tab != "Info":
         st.session_state.current_tab = "Info"
 
