@@ -7,6 +7,18 @@ from datetime import datetime, timedelta
 
 st.set_page_config(layout="wide")
 
+# Inject CSS for background color
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #add8e6;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 @st.cache_data(show_spinner=True, ttl=3600)
 def fetch_petitions():
     all_rows = []
