@@ -5,7 +5,19 @@ import math
 import altair as alt
 from datetime import datetime, timedelta
 
-st.set_page_config(layout="wide")
+# App layout
+st.set_page_config(
+    page_title="UK Petitions",
+    page_icon="📝",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items = {  
+        'Report a bug': 'https://github.com/istasiuk/uk_petitions/issues',
+        'About': "This app provides insights and statistics on UK Parliament petitions"
+    }
+)
+
+st.title("UK Parliament Petitions Viewer")
 
 @st.cache_data(show_spinner=True, ttl=3600)
 def fetch_petitions():
@@ -38,9 +50,9 @@ def fetch_petitions():
                 "Created at": attrs.get("created_at"),
                 "Opened at": attrs.get("opened_at"),
                 "Closed at": attrs.get("closed_at"),
-                "Response threshold (10,000) reached at": attrs.get("response_threshold_reached_at"),
+                "Response threshold reached at": attrs.get("response_threshold_reached_at"),
                 "Government response at": attrs.get("government_response_at"),
-                "Debate threshold (100,000) reached at": attrs.get("debate_threshold_reached_at"),
+                "Debate threshold reached at": attrs.get("debate_threshold_reached_at"),
                 "Scheduled debate date": attrs.get("scheduled_debate_date"),
                 "Debate outcome at": attrs.get("debate_outcome_at"),
                 "Response": response_data.get("summary"),
@@ -76,11 +88,11 @@ def fetch_petitions():
         return int(diff) if diff >= 0 else None
 
     # Calculate the days-between columns here
-    df["Opened → Resp Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Response threshold (10,000) reached at"]), axis=1)
-    df["Opened → Debate Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold (100,000) reached at"]), axis=1)
+    df["Opened → Resp Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Response threshold reached at"]), axis=1)
+    df["Opened → Debate Threshold, days"] = df.apply(lambda row: days_between(row["Opened at"], row["Debate threshold reached at"]), axis=1)
     df["Created → Opened, days"] = df.apply(lambda row: days_between(row["Created at"], row["Opened at"]), axis=1)
-    df["Resp Threshold → Response, days"] = df.apply(lambda row: days_between(row["Response threshold (10,000) reached at"], row["Government response at"]), axis=1)
-    df["Debate Threshold → Scheduled, days"] = df.apply(lambda row: days_between(row["Debate threshold (100,000) reached at"], row["Scheduled debate date"]), axis=1)
+    df["Resp Threshold → Response, days"] = df.apply(lambda row: days_between(row["Response threshold reached at"], row["Government response at"]), axis=1)
+    df["Debate Threshold → Scheduled, days"] = df.apply(lambda row: days_between(row["Debate threshold reached at"], row["Scheduled debate date"]), axis=1)
     df["Scheduled → Outcome, days"] = df.apply(lambda row: days_between(row["Scheduled debate date"], row["Debate outcome at"]), axis=1)
 
     return df, last_updated_plus_one
@@ -103,8 +115,6 @@ def avg_days_between(df, start_col, end_col):
 
     diffs = (end_dates - start_dates).dt.days.dropna()
     return int(diffs.mean()) if len(diffs) > 0 else None
-
-st.title("UK Parliament Petitions Viewer")
 
 with st.spinner("Fetching petitions..."):
     df, last_updated_plus_one = fetch_petitions()
@@ -227,7 +237,7 @@ filtered_df = df[
     petition_filter &
     df["Signatures"].between(effective_min_signatures, effective_max_signatures)]
 
-col_last_updated, col_empty, col_refresh, col_download = st.columns([3, 7, 1, 1])
+col_last_updated, col_empty, col_refresh, col_download = st.columns([4, 4, 2, 2])
 
 with col_last_updated:
     st.markdown(
@@ -255,40 +265,18 @@ with col_download:
 
 st.success(f"{len(df)} petitions loaded | {len(filtered_df)} shown after filtering")
 
-# Additional Metrics
-num_response_threshold = filtered_df["Response threshold (10,000) reached at"].notna().sum()
-num_debate_threshold = filtered_df["Debate threshold (100,000) reached at"].notna().sum()
-num_open_closed = filtered_df["State"].str.lower().isin(["open", "closed"]).sum()
-num_gov_response = filtered_df["Government response at"].notna().sum()
-num_scheduled_debate = filtered_df["Scheduled debate date"].notna().sum()
-num_debate_outcome = filtered_df["Debate outcome at"].notna().sum()
+# Initialize session state for the current tab if not already set
+if "current_tab" not in st.session_state:
+    st.session_state.current_tab = "Key metrics"
 
-col1, col2, col3, col4, col5, col6 = st.columns(6)
-col1.metric("Petitions with Response Threshold Reached", num_response_threshold)
-col2.metric("Petitions with Debate Threshold Reached", num_debate_threshold)
-col3.metric("Open + Closed Petitions", num_open_closed)
-col4.metric("Petitions with Government Response", num_gov_response)
-col5.metric("Petitions with Scheduled Debates", num_scheduled_debate)
-col6.metric("Petitions with Debate Outcome", num_debate_outcome)
+# Create tabs with keys to identify them uniquely
+tabs = ["Key metrics", "Petition List", "Top 10 Petitions by Metric", "Info"]
 
-avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at", "Response threshold (10,000) reached at")
-avg_opened_to_debate_threshold = avg_days_between(filtered_df, "Opened at", "Debate threshold (100,000) reached at")
-avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
-avg_response_threshold_to_response = avg_days_between(filtered_df, "Response threshold (10,000) reached at", "Government response at")
-avg_debate_threshold_to_scheduled = avg_days_between(filtered_df, "Debate threshold (100,000) reached at", "Scheduled debate date")
-avg_scheduled_to_outcome = avg_days_between(filtered_df, "Scheduled debate date", "Debate outcome at")
+# Display tabs and get selected tab index
+selected_tab_index = tabs.index(st.session_state.current_tab)
 
-col1, col2, col3, col4, col5, col6 = st.columns(6)
-col1.metric("Avg Opened → Resp Threshold, days", avg_opened_to_response_threshold or "N/A")
-col2.metric("Avg Opened → Debate Threshold, days", avg_opened_to_debate_threshold or "N/A")
-col3.metric("Avg Created → Opened, days", avg_created_to_opened or "N/A")
-col4.metric("Avg Resp Threshold → Response, days", avg_response_threshold_to_response or "N/A")
-col5.metric("Avg Debate Threshold → Scheduled, days", avg_debate_threshold_to_scheduled or "N/A")
-col6.metric("Avg Scheduled → Outcome, days", avg_scheduled_to_outcome or "N/A")
-
-# Initialize the session state for tab if not set
-if 'active_tab' not in st.session_state:
-    st.session_state.active_tab = "Petition List"
+# Create tabs and keep track of which one user clicks
+tab1, tab2, tab3, tab4 = st.tabs(tabs)
 
 # Inject custom CSS to style the tabs
 st.markdown("""
@@ -303,12 +291,73 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["Petition List", "Top 10 Petitions by Metric"])
-
-# Tab 1: Table only
+# Key metrics
 with tab1:
-    if st.button("Go to First Tab"):
-        st.session_state.active_tab = "Petition List"
+    if st.session_state.current_tab != "Key metrics":
+        st.session_state.current_tab = "Key metrics"
+
+    # Create a function to format the numbers on this tab
+    def format_number(num):
+        if num is None or (isinstance(num, float) and (num != num)):
+            return "N/A"
+        return f"{int(num):,}"
+
+    # Petitions metrics
+    st.markdown("#### Petitions")
+
+    # Calculate the petitions metrics
+    num_response_threshold = filtered_df["Response threshold reached at"].notna().sum()
+    num_debate_threshold = filtered_df["Debate threshold reached at"].notna().sum()
+    num_open_closed = filtered_df["State"].str.lower().isin(["open", "closed"]).sum()
+    num_gov_response = filtered_df["Government response at"].notna().sum()
+    num_scheduled_debate = filtered_df["Scheduled debate date"].notna().sum()
+    num_debate_outcome = filtered_df["Debate outcome at"].notna().sum()
+
+    # Separate the metrics for voters and government activities
+    label_cols = st.columns(6)
+    label_cols[0].markdown("**Voters Activity**")
+    label_cols[1].markdown("&nbsp;")  # spacing only
+    label_cols[2].markdown("**Government Activity**")
+    label_cols[3].markdown("&nbsp;")
+    label_cols[4].markdown("&nbsp;")
+    label_cols[5].markdown("&nbsp;")
+
+    # Display the petitions metrics
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1.metric("Resp Threshold Reached", format_number(num_response_threshold))
+    col2.metric("Deb Threshold Reached", format_number(num_debate_threshold))
+    col3.metric("Open + Closed", format_number(num_open_closed))
+    col4.metric("Government Resp", format_number(num_gov_response))
+    col5.metric("Scheduled Debates", format_number(num_scheduled_debate))
+    col6.metric("Debates Outcome", format_number(num_debate_outcome))
+
+    # Timelines metrics
+    st.markdown("#### Average Timelines, days")
+
+    # Calculate the timelines metrics
+    avg_opened_to_response_threshold = avg_days_between(filtered_df, "Opened at",
+                                                        "Response threshold reached at")
+    avg_opened_to_debate_threshold = avg_days_between(filtered_df, "Opened at", "Debate threshold reached at")
+    avg_created_to_opened = avg_days_between(filtered_df, "Created at", "Opened at")
+    avg_response_threshold_to_response = avg_days_between(filtered_df, "Response threshold reached at",
+                                                          "Government response at")
+    avg_debate_threshold_to_scheduled = avg_days_between(filtered_df, "Debate threshold reached at",
+                                                         "Scheduled debate date")
+    avg_scheduled_to_outcome = avg_days_between(filtered_df, "Scheduled debate date", "Debate outcome at")
+
+    # Display the timelines metrics
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1.metric("Opened → Resp Thresh", format_number(avg_opened_to_response_threshold))
+    col2.metric("Opened → Deb Thresh", format_number(avg_opened_to_debate_threshold))
+    col3.metric("Created → Opened", format_number(avg_created_to_opened))
+    col4.metric("Resp Thresh → Gov Resp", format_number(avg_response_threshold_to_response))
+    col5.metric("Deb Thresh → Deb Sched", format_number(avg_debate_threshold_to_scheduled))
+    col6.metric("Deb Sched → Deb Outc", format_number(avg_scheduled_to_outcome))
+
+# Tab 2: Table only
+with tab2:
+    if st.session_state.current_tab != "Petition List":
+        st.session_state.current_tab = "Petition List"
 
     if "page" not in st.session_state:
         st.session_state.page = 1
@@ -324,17 +373,15 @@ with tab1:
 
     date_columns = [
         "Created at", "Opened at", "Closed at",
-        "Response threshold (10,000) reached at", "Government response at",
-        "Debate threshold (100,000) reached at", "Scheduled debate date", "Debate outcome at"
+        "Response threshold reached at", "Government response at",
+        "Debate threshold reached at", "Scheduled debate date", "Debate outcome at"
     ]
     for col in date_columns:
         if col in paged_df.columns:
             paged_df[col] = pd.to_datetime(paged_df[col], errors='coerce').dt.strftime('%d/%m/%Y')
 
-    st.markdown('<div style="margin-top: 30px;"></div>', unsafe_allow_html=True)
-
     # Add empty space at the beginning to push to the right
-    pagination_cols = st.columns([10, 1, 1, 2, 1, 1])
+    pagination_cols = st.columns([8, 1.5, 1.5, 2, 1.5, 1.5])
 
     # Empty spacer
     with pagination_cols[0]:
@@ -480,7 +527,7 @@ with tab1:
 
     # Use custom gradient colors here
     def color_scale(value, vmin, vmax):
-        return interpolate_color(value, vmin, vmax, 'rgb(184,95,75)', '#0e1117')
+        return interpolate_color(value, vmin, vmax, '#74ac84', '#ffffff')
 
     # Styling function to be applied via Styler.applymap
     def style_val_factory(vmin, vmax):
@@ -518,14 +565,15 @@ with tab1:
         }}
         table {{
             width: max-content;
-            border-collapse: collapse;
+            border-collapse: separate !important;
+            border-spacing: 0;
             table-layout: fixed;
         }}
         thead th {{
             position: sticky;
             top: 0;
-            background: #0e1117;
-            color: #f0f0f0;
+            background: #ffffff;
+            color: #000000;
             z-index: 2;
             text-align: left !important;
             padding: 6px 8px;
@@ -576,15 +624,16 @@ with tab1:
         table th:nth-child(1), table td:nth-child(1) {
             position: sticky;
             left: 0;
-            background: #0e1117;
+            background: #ffffff;
             z-index: 3;
+
         }
         /* Top-left cell (both row and column header) */
         table thead th:nth-child(1) {
             position: sticky;
             top: 0;
             left: 0;
-            background: #0e1117;
+            background: #ffffff;
             z-index: 5;
         }
         table td span[title] {
@@ -600,16 +649,14 @@ with tab1:
     # Then render HTML table
     st.markdown(
         f"""
-        <div class="dataframe-wrapper">
-            {html_table}
-        </div>
+        <div class="dataframe-wrapper">{html_table}</div>
         """,
         unsafe_allow_html=True
     )
 
-with tab2:
-    if st.button("Go to Second Tab"):
-        st.session_state.active_tab = "Top 10 Petitions by Metric"
+with tab3:
+    if st.session_state.current_tab != "Top 10 Petitions by Metric":
+        st.session_state.current_tab = "Top 10 Petitions by Metric"
 
     # Choose metric in chart
     metric_options = [
@@ -708,10 +755,25 @@ with tab2:
 
         st.altair_chart(chart, use_container_width=True)
 
-# After button click, re-render tab based on session state
-if st.session_state.active_tab == "Top 10 Petitions by Metric":
-    tab2
-else:
-    tab1
+
+# Info
+with tab4:
+    if st.session_state.current_tab != "Info":
+        st.session_state.current_tab = "Info"
+
+    st.markdown("#### Abbreviations")
+    st.markdown("""
+    - **Deb** - debates 
+    - **Gov** - government 
+    - **Outc** - outcome 
+    - **Resp** - response
+    - **Thresh** - threshold
+    """)
+
+    st.markdown("#### Comments")
+    st.markdown("""
+    - **Government response threshold**: reached when a petition collects **10,000** signatures  
+    - **Debates threshold**: reached when a petition collects **100,000** signatures
+    """)
 
 
