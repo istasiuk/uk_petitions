@@ -153,6 +153,9 @@ def fetch_petitions():
         axis=1
     )
 
+    # Save DataFrame to CSV
+    df.to_csv("petitions.csv", index=False)
+
     return df, last_updated_plus_one
 
 
