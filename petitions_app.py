@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+import csv
 import streamlit as st
 import math
 import altair as alt
@@ -152,9 +153,6 @@ def fetch_petitions():
         else None,
         axis=1
     )
-
-    # Save DataFrame to CSV
-    df.to_csv("petitions.csv", index=False)
 
     return df, last_updated_plus_one
 
@@ -321,7 +319,7 @@ with col_refresh:
 
 # In the third column, create a "Download CSV" button to download the currently filtered data as a CSV file
 with col_download:
-    csv_data = filtered_df.to_csv(index=False, header=True).encode('utf-8')
+    csv_data = filtered_df.to_csv(index=False, header=True, encoding='utf-8',quoting=csv.QUOTE_ALL)
     st.download_button(
         label="Download CSV",
         data=csv_data,
